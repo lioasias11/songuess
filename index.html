@@ -1,24 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SONGUESS // Heardle Music Guessing Game</title>
   <meta name="description" content="Simple & clean Heardle music guessing game. Guess the song from short snippets!">
-  
+
   <!-- Modern Clean Typography: Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <!-- Canvas Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <link rel="stylesheet" href="index.css">
 </head>
+
 <body>
   <div class="app-container">
     <!-- Clean Minimalist Header -->
@@ -32,15 +35,19 @@
 
       <div class="header-right">
         <div class="header-stats-pill">
-          <span id="player-name-span" class="player-name-pill" title="Click to rename profile"><i class="fa-solid fa-user"></i> <strong id="player-name-val">Guest</strong></span>
+          <span id="player-name-span" class="player-name-pill" title="Click to rename profile"><i
+              class="fa-solid fa-user"></i> <strong id="player-name-val">Guest</strong></span>
           <span class="stat-divider">•</span>
           <span><i class="fa-solid fa-trophy"></i> <strong id="score-val">0</strong> PTS</span>
           <span class="stat-divider">•</span>
           <span><i class="fa-solid fa-fire"></i> <strong id="streak-val">0</strong> STREAK</span>
         </div>
-        <button id="btn-sfx-toggle" class="icon-btn" title="Toggle Sound FX"><i class="fa-solid fa-volume-high"></i></button>
-        <button id="btn-stats-modal" class="icon-btn" title="View Statistics"><i class="fa-solid fa-chart-simple"></i></button>
-        <button id="btn-leaderboard-modal" class="icon-btn" title="View Leaderboard"><i class="fa-solid fa-ranking-star"></i></button>
+        <button id="btn-sfx-toggle" class="icon-btn" title="Toggle Sound FX"><i
+            class="fa-solid fa-volume-high"></i></button>
+        <button id="btn-stats-modal" class="icon-btn" title="View Statistics"><i
+            class="fa-solid fa-chart-simple"></i></button>
+        <button id="btn-leaderboard-modal" class="icon-btn" title="View Leaderboard"><i
+            class="fa-solid fa-ranking-star"></i></button>
       </div>
     </header>
 
@@ -57,13 +64,15 @@
           <button class="genre-pill-btn pill-blue" data-genre="80s">80s</button>
           <button class="genre-pill-btn pill-cyan" data-genre="90s">90s</button>
           <button class="genre-pill-btn pill-pink" data-genre="2000s">2000s</button>
+          <button class="genre-pill-btn pill-custom" data-genre="custom" id="btn-custom-genre"><i
+              class="fa-brands fa-spotify"></i> Custom</button>
         </div>
 
         <!-- Segmented Capsule Progress Bar -->
         <div class="progress-bar-container">
           <div class="capsule-track" id="capsule-track">
             <div id="capsule-progress" class="capsule-progress"></div>
-            
+
             <div class="capsule-segments">
               <div class="c-segment seg-0" data-step="0" style="width: 1.0%" title="0.1s"></div>
               <div class="c-segment seg-1" data-step="1" style="width: 4.0%" title="0.5s"></div>
@@ -85,7 +94,7 @@
               <span id="snippet-duration">0.1s</span>
             </div>
           </div>
-          
+
           <div id="game-feedback-text" class="game-feedback-text">
             Listen to snippet and guess the song
           </div>
@@ -96,9 +105,11 @@
           <div class="search-input-wrapper">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
             <input type="text" id="guess-input" placeholder="Search songs..." autocomplete="off" spellcheck="false">
-            <button id="btn-clear-input" class="clear-btn" title="Clear input"><i class="fa-solid fa-xmark"></i></button>
-            <button id="btn-submit" class="submit-pill-btn" title="Submit guess"><i class="fa-solid fa-arrow-up"></i></button>
-            
+            <button id="btn-clear-input" class="clear-btn" title="Clear input"><i
+                class="fa-solid fa-xmark"></i></button>
+            <button id="btn-submit" class="submit-pill-btn" title="Submit guess"><i
+                class="fa-solid fa-arrow-up"></i></button>
+
             <!-- Upward Autocomplete Dropdown -->
             <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
           </div>
@@ -119,26 +130,27 @@
   <!-- Clean Results Modal -->
   <div id="results-modal" class="modal-overlay">
     <div class="modal-card">
-      <button class="modal-close-btn" id="modal-x">&times;</button>
-      
       <div class="modal-header">
         <h2 id="modal-title">Track Decrypted!</h2>
         <p id="modal-subtitle" class="modal-subtitle">Unlocked in 0.1s • +1000 PTS</p>
       </div>
-      
+
       <!-- Track details revealed -->
       <div class="reveal-card">
         <div class="album-artwork-wrapper">
           <img id="reveal-artwork" src="" alt="Album Artwork">
-          <button id="btn-reveal-play" class="play-full-btn" title="Listen to full preview"><i class="fa-solid fa-play"></i></button>
+          <button id="btn-reveal-play" class="play-full-btn" title="Listen to full preview"><i
+              class="fa-solid fa-play"></i></button>
         </div>
         <div class="reveal-meta">
           <h3 id="reveal-title">Song Title</h3>
           <p id="reveal-artist">Artist Name</p>
           <p id="reveal-album" class="album-name">Album Name</p>
           <div class="reveal-actions">
-            <a id="itunes-link" href="#" target="_blank" class="streaming-link itunes"><i class="fa-brands fa-apple"></i> Apple Music</a>
-            <a id="youtube-link" href="#" target="_blank" class="streaming-link yt"><i class="fa-brands fa-youtube"></i> YouTube</a>
+            <a id="itunes-link" href="#" target="_blank" class="streaming-link itunes"><i
+                class="fa-brands fa-apple"></i> Apple Music</a>
+            <a id="youtube-link" href="#" target="_blank" class="streaming-link yt"><i class="fa-brands fa-youtube"></i>
+              YouTube</a>
           </div>
         </div>
       </div>
@@ -169,27 +181,39 @@
         <div class="dist-chart">
           <div class="dist-row">
             <span class="dist-label">0.1s</span>
-            <div class="dist-bar-wrapper"><div class="dist-bar" id="dist-0" style="width: 0%">0</div></div>
+            <div class="dist-bar-wrapper">
+              <div class="dist-bar" id="dist-0" style="width: 0%">0</div>
+            </div>
           </div>
           <div class="dist-row">
             <span class="dist-label">0.5s</span>
-            <div class="dist-bar-wrapper"><div class="dist-bar" id="dist-1" style="width: 0%">0</div></div>
+            <div class="dist-bar-wrapper">
+              <div class="dist-bar" id="dist-1" style="width: 0%">0</div>
+            </div>
           </div>
           <div class="dist-row">
             <span class="dist-label">1.0s</span>
-            <div class="dist-bar-wrapper"><div class="dist-bar" id="dist-2" style="width: 0%">0</div></div>
+            <div class="dist-bar-wrapper">
+              <div class="dist-bar" id="dist-2" style="width: 0%">0</div>
+            </div>
           </div>
           <div class="dist-row">
             <span class="dist-label">2.0s</span>
-            <div class="dist-bar-wrapper"><div class="dist-bar" id="dist-3" style="width: 0%">0</div></div>
+            <div class="dist-bar-wrapper">
+              <div class="dist-bar" id="dist-3" style="width: 0%">0</div>
+            </div>
           </div>
           <div class="dist-row">
             <span class="dist-label">5.0s</span>
-            <div class="dist-bar-wrapper"><div class="dist-bar" id="dist-4" style="width: 0%">0</div></div>
+            <div class="dist-bar-wrapper">
+              <div class="dist-bar" id="dist-4" style="width: 0%">0</div>
+            </div>
           </div>
           <div class="dist-row">
             <span class="dist-label">10.0s</span>
-            <div class="dist-bar-wrapper"><div class="dist-bar" id="dist-5" style="width: 0%">0</div></div>
+            <div class="dist-bar-wrapper">
+              <div class="dist-bar" id="dist-5" style="width: 0%">0</div>
+            </div>
           </div>
         </div>
       </div>
@@ -205,19 +229,21 @@
   <div id="leaderboard-modal" class="modal-overlay">
     <div class="modal-card">
       <button class="modal-close-btn" id="btn-close-leaderboard">&times;</button>
-      
+
       <div class="modal-header">
         <h2>SONGUESS LEADERBOARD</h2>
         <p class="modal-subtitle">Top players ranked by total points</p>
       </div>
-      
+
       <div class="leaderboard-list" id="leaderboard-entries-container">
         <!-- Populated via Javascript -->
       </div>
-      
+
       <div class="modal-actions" style="margin-top: 1.2rem; gap: 10px; flex-wrap: wrap;">
-        <button id="btn-switch-profile" class="modal-btn-secondary"><i class="fa-solid fa-user-pen"></i> Edit / Switch Name</button>
-        <button id="btn-close-leaderboard-bottom" class="modal-btn-primary" style="width: auto; flex-grow: 1;">Close</button>
+        <button id="btn-switch-profile" class="modal-btn-secondary"><i class="fa-solid fa-user-pen"></i> Edit / Switch
+          Name</button>
+        <button id="btn-close-leaderboard-bottom" class="modal-btn-primary"
+          style="width: auto; flex-grow: 1;">Close</button>
       </div>
     </div>
   </div>
@@ -229,14 +255,114 @@
         <h2>CHOOSE YOUR STAGE NAME</h2>
         <p class="modal-subtitle">Enter your name to track stats and compete on the leaderboard</p>
       </div>
-      
+
       <div class="name-setup-form" style="display: flex; flex-direction: column; gap: 1rem;">
         <div style="display: flex; flex-direction: column; gap: 6px;">
-          <input type="text" id="username-input" placeholder="e.g. DJ Spark, SynthwaveFan" maxlength="15" autocomplete="off" spellcheck="false" style="width: 100%; padding: 0.8rem 1rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--bg-input); color: #fff; font-family: var(--font-main); font-size: 0.95rem;">
-          <p id="name-validation-msg" class="validation-msg" style="color: #ef4444; font-size: 0.75rem; font-weight: 600; min-height: 16px; margin: 2px 0 0 4px;"></p>
+          <input type="text" id="username-input" placeholder="e.g. DJ Spark, SynthwaveFan" maxlength="15"
+            autocomplete="off" spellcheck="false"
+            style="width: 100%; padding: 0.8rem 1rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--bg-input); color: #fff; font-family: var(--font-main); font-size: 0.95rem;">
+          <p id="name-validation-msg" class="validation-msg"
+            style="color: #ef4444; font-size: 0.75rem; font-weight: 600; min-height: 16px; margin: 2px 0 0 4px;"></p>
         </div>
-        
-        <button id="btn-submit-name" class="modal-btn-primary" style="width: 100%;">Start Playing <i class="fa-solid fa-play"></i></button>
+
+        <button id="btn-submit-name" class="modal-btn-primary" style="width: 100%;">Start Playing <i
+            class="fa-solid fa-play"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Spotify Playlist / Album Modal -->
+  <div id="modal-custom-playlist" class="modal-overlay">
+    <div class="modal-card modal-card-large">
+      <button class="modal-close-btn" id="btn-close-custom-modal">&times;</button>
+
+      <div class="modal-header">
+        <h2><i class="fa-brands fa-spotify" style="color: #22c55e;"></i> CUSTOM PLAYLIST & ALBUM</h2>
+        <p class="modal-subtitle">Play any Spotify playlist, album, or custom tracklist</p>
+      </div>
+
+      <!-- Mode Tabs -->
+      <div class="custom-tabs-row">
+        <button class="custom-tab-btn active" data-tab="spotify-link"><i class="fa-solid fa-link"></i> Link</button>
+        <button class="custom-tab-btn" data-tab="search-album"><i class="fa-solid fa-compact-disc"></i> Search
+          Album</button>
+        <button class="custom-tab-btn" data-tab="paste-songs"><i class="fa-solid fa-list-check"></i> Paste List</button>
+        <button class="custom-tab-btn" data-tab="presets"><i class="fa-solid fa-star"></i> Featured</button>
+      </div>
+
+      <!-- Tab 1: Spotify / Apple Link -->
+      <div id="tab-pane-spotify-link" class="custom-tab-pane active">
+        <div class="custom-input-group">
+          <label for="custom-spotify-url">Paste Music Link or Album / Artist Name</label>
+          <div class="input-with-btn">
+            <input type="text" id="custom-spotify-url" placeholder="e.g. Apple Music link, Spotify link, or 'Peer Tasi רדיו שטח 2'..."
+              autocomplete="off">
+            <button id="btn-fetch-spotify" class="modal-btn-primary"><i class="fa-solid fa-cloud-arrow-down"></i>
+              Import</button>
+          </div>
+          <p class="custom-hint-text">Paste any Apple Music URL, Spotify link, or type an album/artist name to auto-load all tracks!</p>
+        </div>
+      </div>
+
+      <!-- Tab 2: Search Album -->
+      <div id="tab-pane-search-album" class="custom-tab-pane">
+        <div class="custom-input-group">
+          <label for="custom-album-query">Search Any Album or Artist</label>
+          <div class="input-with-btn">
+            <input type="text" id="custom-album-query"
+              placeholder="e.g. Billie Eilish HIT ME HARD, Taylor Swift 1989, Oasis..." autocomplete="off">
+            <button id="btn-search-album" class="modal-btn-primary"><i class="fa-solid fa-magnifying-glass"></i>
+              Search</button>
+          </div>
+        </div>
+        <div id="album-search-results" class="album-results-grid"></div>
+      </div>
+
+      <!-- Tab 3: Paste Songs List -->
+      <div id="tab-pane-paste-songs" class="custom-tab-pane">
+        <div class="custom-input-group">
+          <label for="custom-songs-textarea">Song List (One song per line: "Artist - Title")</label>
+          <textarea id="custom-songs-textarea" rows="5"
+            placeholder="Taylor Swift - Cruel Summer&#10;Dua Lipa - Levitating&#10;Billie Eilish - BIRDS OF A FEATHER&#10;The Weeknd - Blinding Lights"></textarea>
+          <button id="btn-apply-pasted-songs" class="modal-btn-secondary" style="margin-top: 8px;"><i
+              class="fa-solid fa-check"></i> Load Text Songs</button>
+        </div>
+      </div>
+
+      <!-- Tab 4: Featured Presets -->
+      <div id="tab-pane-presets" class="custom-tab-pane">
+        <p class="custom-hint-text" style="margin-bottom: 10px;">Select a popular curated album or playlist:</p>
+        <div class="preset-buttons-grid">
+          <button class="preset-pill-btn" data-preset="tth"><i class="fa-brands fa-spotify"></i> Today's Top Hits
+            (50)</button>
+          <button class="preset-pill-btn" data-preset="billie"><i class="fa-solid fa-compact-disc"></i> Billie Eilish -
+            HIT ME HARD AND SOFT</button>
+          <button class="preset-pill-btn" data-preset="taylor"><i class="fa-solid fa-compact-disc"></i> Taylor Swift -
+            1989 (Taylor's Version)</button>
+          <button class="preset-pill-btn" data-preset="chappell"><i class="fa-solid fa-compact-disc"></i> Chappell Roan
+            - Midwest Princess</button>
+          <button class="preset-pill-btn" data-preset="sabrina"><i class="fa-solid fa-compact-disc"></i> Sabrina
+            Carpenter - Short n' Sweet</button>
+          <button class="preset-pill-btn" data-preset="charli"><i class="fa-solid fa-compact-disc"></i> Charli xcx -
+            BRAT</button>
+          <button class="preset-pill-btn" data-preset="weeknd"><i class="fa-solid fa-compact-disc"></i> The Weeknd -
+            After Hours</button>
+          <button class="preset-pill-btn" data-preset="oasis"><i class="fa-solid fa-compact-disc"></i> Oasis - (What's
+            the Story) Morning Glory?</button>
+        </div>
+      </div>
+
+      <!-- Status & Track Preview Container -->
+      <div id="custom-status-area" class="custom-status-area">
+        <div class="custom-summary-row">
+          <div class="custom-info">
+            <span id="custom-playlist-title" class="custom-title-text">No custom playlist loaded</span>
+            <span id="custom-playlist-count" class="custom-count-badge">0 tracks</span>
+          </div>
+          <button id="btn-start-custom-game" class="modal-btn-primary" disabled><i class="fa-solid fa-play"></i> Play
+            This Playlist</button>
+        </div>
+        <div id="custom-tracks-preview" class="custom-tracks-list"></div>
       </div>
     </div>
   </div>
@@ -247,4 +373,5 @@
   <!-- Script -->
   <script src="index.js"></script>
 </body>
+
 </html>
