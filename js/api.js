@@ -98,8 +98,34 @@ function scoreTrackCandidate(item, targetTitle, targetArtist) {
   return score;
 }
 
+const PRELOADED_TRACK_DATA = {};
+
+function storePreloadedTrackData(keyStr, data) {
+  if (!keyStr || !data) return;
+  const normKey = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(keyStr) : keyStr.toLowerCase().trim();
+  PRELOADED_TRACK_DATA[normKey] = data;
+}
+
+function getPreloadedTrackData(keyStr) {
+  if (!keyStr) return null;
+  const normKey = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(keyStr) : keyStr.toLowerCase().trim();
+  return PRELOADED_TRACK_DATA[normKey] || null;
+}
+
 async function fetchTrackData(query) {
   if (!query) return null;
+
+  // 1. Check if we already have direct verified preview audio preloaded (e.g. from Spotify import)
+  const preloaded = getPreloadedTrackData(query);
+  if (preloaded && preloaded.previewUrl) {
+    return {
+      previewUrl: preloaded.previewUrl,
+      artwork: preloaded.artwork || DEFAULT_ARTWORK_SVG,
+      trackName: preloaded.title || query,
+      artistName: preloaded.artist || 'Various',
+      collectionName: preloaded.album || 'Single'
+    };
+  }
 
   let targetArtist = '';
   let targetTitle = query;
@@ -109,7 +135,7 @@ async function fetchTrackData(query) {
     targetTitle = parts.slice(1).join(' - ').trim();
   }
 
-  // 1. Try iTunes search with original query and aliases
+  // 2. Try iTunes search with original query and aliases
   const aliases = (typeof getArtistAliases === 'function') ? getArtistAliases(query) : [query];
   
   for (const q of aliases) {
@@ -121,22 +147,27 @@ async function fetchTrackData(query) {
         if (candidates.length > 0) {
           candidates.sort((a, b) => scoreTrackCandidate(b, targetTitle, targetArtist) - scoreTrackCandidate(a, targetTitle, targetArtist));
           const best = candidates[0];
-          let artwork = best.artworkUrl100 || '';
-          artwork = artwork.replace('100x100bb', '600x600bb');
+          const bestScore = scoreTrackCandidate(best, targetTitle, targetArtist);
 
-          return {
-            previewUrl: best.previewUrl,
-            artwork: artwork,
-            trackName: best.trackName,
-            artistName: best.artistName,
-            collectionName: best.collectionName || 'Single'
-          };
+          // Only accept candidate if it has a reasonable score (not a completely different song by the artist)
+          if (bestScore >= 40) {
+            let artwork = best.artworkUrl100 || '';
+            artwork = artwork.replace('100x100bb', '600x600bb');
+
+            return {
+              previewUrl: best.previewUrl,
+              artwork: artwork,
+              trackName: best.trackName,
+              artistName: best.artistName,
+              collectionName: best.collectionName || 'Single'
+            };
+          }
         }
       }
     } catch (e) { }
   }
 
-  // 2. Fallback to Deezer API for preview audio
+  // 3. Fallback to Deezer API for preview audio
   for (const q of aliases) {
     try {
       const deezerUrl = 'https://api.deezer.com/search?q=' + encodeURIComponent(q) + '&limit=5&output=jsonp';
@@ -150,13 +181,17 @@ async function fetchTrackData(query) {
             return scoreTrackCandidate(itemB, targetTitle, targetArtist) - scoreTrackCandidate(itemA, targetTitle, targetArtist);
           });
           const best = candidates[0];
-          return {
-            previewUrl: best.preview,
-            artwork: (best.album && (best.album.cover_big || best.album.cover_medium)) || DEFAULT_ARTWORK_SVG,
-            trackName: best.title,
-            artistName: (best.artist && best.artist.name) || 'Various',
-            collectionName: (best.album && best.album.title) || 'Single'
-          };
+          const bestScore = scoreTrackCandidate({ trackName: best.title, artistName: (best.artist && best.artist.name) || '' }, targetTitle, targetArtist);
+          
+          if (bestScore >= 40) {
+            return {
+              previewUrl: best.preview,
+              artwork: (best.album && (best.album.cover_big || best.album.cover_medium)) || DEFAULT_ARTWORK_SVG,
+              trackName: best.title,
+              artistName: (best.artist && best.artist.name) || 'Various',
+              collectionName: (best.album && best.album.title) || 'Single'
+            };
+          }
         }
       }
     } catch (e) { }
@@ -662,4 +697,131 @@ async function fetchApplePlaylistTracks(rawUrl) {
 
   return null;
 }
+
+async function fetchSpotifyPlaylistTracks(rawUrl) {
+  const urlMatch = (rawUrl || '').match(/https?:\/\/[^\s"'<>]+/i);
+  const targetUrl = urlMatch ? urlMatch[0] : (rawUrl || '').trim();
+  if (!targetUrl) return null;
+
+  const idMatch = targetUrl.match(/(?:playlist|album|artist)\/([a-zA-Z0-9]+)/i);
+  if (!idMatch) return null;
+
+  const typeMatch = targetUrl.match(/(playlist|album|artist)/i);
+  const type = typeMatch ? typeMatch[1].toLowerCase() : 'playlist';
+  const id = idMatch[1];
+  const embedUrl = `https://open.spotify.com/embed/${type}/${id}`;
+
+  function parseSpotifyEmbedHtml(text) {
+    if (!text) return null;
+    try {
+      const nextMatch = text.match(/<script[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i);
+      if (!nextMatch) return null;
+      const nextJson = JSON.parse(nextMatch[1]);
+      const entity = nextJson.props && nextJson.props.pageProps && nextJson.props.pageProps.state && nextJson.props.pageProps.state.data && nextJson.props.pageProps.state.data.entity;
+      if (!entity) return null;
+
+      const playlistTitle = entity.title || entity.name || 'Spotify Playlist';
+      const rawTracks = entity.trackList || (entity.tracks && entity.tracks.items) || [];
+      const tracks = [];
+
+      for (const t of rawTracks) {
+        const trackTitle = t.title || t.name;
+        let artistName = t.subtitle || (t.artists && t.artists.map(a => a.name).join(', ')) || '';
+        artistName = artistName.replace(/\u00a0/g, ' ').trim();
+
+        if (trackTitle) {
+          const fullStr = artistName ? `${artistName} - ${trackTitle}` : trackTitle;
+          tracks.push(fullStr);
+
+          const previewUrl = (t.audioPreview && t.audioPreview.url) || null;
+          let artwork = (t.coverArt && t.coverArt.sources && t.coverArt.sources[0] && t.coverArt.sources[0].url) || null;
+          if (!artwork && entity.coverArt && entity.coverArt.sources && entity.coverArt.sources[0]) {
+            artwork = entity.coverArt.sources[0].url;
+          }
+
+          if (previewUrl) {
+            const trackObj = {
+              title: trackTitle,
+              artist: artistName || 'Various',
+              previewUrl: previewUrl,
+              artwork: artwork || DEFAULT_ARTWORK_SVG,
+              album: playlistTitle
+            };
+            storePreloadedTrackData(fullStr, trackObj);
+            storePreloadedTrackData(trackTitle, trackObj);
+            storePreloadedTrackData(`${trackTitle} ${artistName}`, trackObj);
+            storePreloadedTrackData(`${artistName} ${trackTitle}`, trackObj);
+          }
+        }
+      }
+
+      if (tracks.length > 0) {
+        return { title: playlistTitle, tracks };
+      }
+    } catch (e) {
+      console.warn('Error parsing Spotify embed HTML:', e);
+    }
+    return null;
+  }
+
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 6000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
+    }
+  }
+
+  // Strategy 1: Jina HTML mode
+  try {
+    const res = await fetchWithTimeout('https://r.jina.ai/' + embedUrl, {
+      headers: { 'X-Return-Format': 'html' }
+    }, 6000);
+    if (res.ok) {
+      const text = await res.text();
+      const parsed = parseSpotifyEmbedHtml(text);
+      if (parsed && parsed.tracks.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Jina Spotify embed fetch failed:', e);
+  }
+
+  // Strategy 2: Allorigins fallback proxy
+  try {
+    const res = await fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(embedUrl), {}, 6000);
+    if (res.ok) {
+      const json = await res.json();
+      const parsed = parseSpotifyEmbedHtml(json.contents || '');
+      if (parsed && parsed.tracks.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Allorigins Spotify embed fetch failed:', e);
+  }
+
+  // Strategy 3: Codetabs fallback proxy
+  try {
+    const res = await fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(embedUrl), {}, 6000);
+    if (res.ok) {
+      const text = await res.text();
+      const parsed = parseSpotifyEmbedHtml(text);
+      if (parsed && parsed.tracks.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Codetabs Spotify embed fetch failed:', e);
+  }
+
+  return null;
+}
+
 

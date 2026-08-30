@@ -74,82 +74,94 @@ async function handleSpotifyImport() {
 
   if (!rawInput) return;
 
+  // Extract clean URL from mobile shared text
+  const urlMatch = rawInput.match(/https?:\/\/[^\s"'<>]+/i);
+  const cleanUrl = urlMatch ? urlMatch[0] : rawInput;
+
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Importing...';
 
   try {
-    // 1. Apple Music URL
-    const appleMatch = rawInput.match(/apple\.com\/.*\/album\/([^\/]+)\/(\d+)/i) || rawInput.match(/id=(\d+)/i);
-    if (appleMatch) {
-      const collectionId = appleMatch[2] || appleMatch[1];
-      if (/^\d+$/.test(collectionId)) {
-        const lookupUrl = 'https://itunes.apple.com/lookup?id=' + collectionId + '&entity=song';
-        const lookupData = await fetchJsonp(lookupUrl, 4000);
-        if (lookupData && lookupData.results && lookupData.results.length > 0) {
-          const albumInfo = lookupData.results[0];
-          const songs = lookupData.results.filter(r => r.wrapperType === 'track');
-          const tracks = songs.map(s => s.artistName + ' - ' + s.trackName);
-          if (tracks.length > 0) {
-            stagedCustomPlaylist = {
-              title: (albumInfo.collectionName || 'Album') + ' by ' + (albumInfo.artistName || ''),
-              tracks: tracks
-            };
-            updateCustomModalPreview();
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded!';
-            setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 1500);
-            return;
-          }
-        }
-      }
-    }
-
-    // 2. Extract slug or title from Spotify / web URL
-    let extractedQuery = rawInput;
-    if (rawInput.includes('spotify.com') || rawInput.startsWith('http')) {
-      const cleanUrl = rawInput.split('?')[0].replace(/\/$/, '');
-      const parts = cleanUrl.split('/');
-      const lastPart = parts[parts.length - 1] || '';
-      
-      if (lastPart.includes('-')) {
-        extractedQuery = decodeURIComponent(lastPart.replace(/^[a-zA-Z0-9]{22}-?/, '').replace(/-/g, ' '));
-      } else {
-        try {
-          const oembedRes = await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent(rawInput));
-          if (oembedRes.ok) {
-            const oembedJson = await oembedRes.json();
-            if (oembedJson && oembedJson.title) {
-              extractedQuery = oembedJson.title;
-            }
-          }
-        } catch (e) { }
-      }
-    }
-
-    // 3. Search Apple Music / iTunes for this album or artist
-    if (extractedQuery && !extractedQuery.startsWith('http')) {
-      const searchData = await fetchAlbumTracksFromItunes(extractedQuery);
-      if (searchData && searchData.tracks.length > 0) {
-        stagedCustomPlaylist = searchData;
+    // 1. Spotify URL (playlist, album, artist)
+    if (cleanUrl.includes('spotify.com')) {
+      const spData = await fetchSpotifyPlaylistTracks(cleanUrl);
+      if (spData && spData.tracks.length > 0) {
+        stagedCustomPlaylist = spData;
         updateCustomModalPreview();
-        btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded!';
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded ' + spData.tracks.length + ' tracks!';
         setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 1500);
         return;
       }
     }
 
-    // 4. If direct auto-lookup didn't find exact matches, switch to Search Album tab
-    const searchTabBtn = document.querySelector('.custom-tab-btn[data-tab="search-album"]');
-    const searchInput = document.getElementById('custom-album-query');
-    if (searchTabBtn && searchInput) {
-      searchInput.value = (extractedQuery && !extractedQuery.startsWith('http')) ? extractedQuery : '';
-      searchTabBtn.click();
-      if (searchInput.value) handleAlbumSearch();
+    // 2. Apple Music Playlist / Album URL
+    if (cleanUrl.includes('apple.com')) {
+      if (cleanUrl.includes('playlist/') || cleanUrl.includes('pl.u-') || cleanUrl.includes('pl.')) {
+        const plData = await fetchApplePlaylistTracks(cleanUrl);
+        if (plData && plData.tracks.length > 0) {
+          stagedCustomPlaylist = plData;
+          updateCustomModalPreview();
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded ' + plData.tracks.length + ' tracks!';
+          setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 1500);
+          return;
+        }
+      }
+
+      const appleMatch = cleanUrl.match(/apple\.com\/.*\/album\/([^\/]+)\/(\d+)/i) || cleanUrl.match(/id=(\d+)/i) || cleanUrl.match(/\/(\d{6,12})/);
+      if (appleMatch) {
+        const collectionId = appleMatch[2] || appleMatch[1];
+        if (/^\d+$/.test(collectionId)) {
+          const lookupUrl = 'https://itunes.apple.com/lookup?id=' + collectionId + '&entity=song';
+          const lookupData = await fetchJsonp(lookupUrl, 5000);
+          if (lookupData && lookupData.results && lookupData.results.length > 0) {
+            const albumInfo = lookupData.results[0];
+            const songs = lookupData.results.filter(r => r.wrapperType === 'track');
+            const tracks = songs.map(s => s.artistName + ' - ' + s.trackName);
+            if (tracks.length > 0) {
+              stagedCustomPlaylist = {
+                title: (albumInfo.collectionName || 'Album') + ' by ' + (albumInfo.artistName || ''),
+                tracks: tracks
+              };
+              updateCustomModalPreview();
+              btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded ' + tracks.length + ' tracks!';
+              setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 1500);
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Search Apple Music / iTunes for this album or artist text if not a URL
+    if (!cleanUrl.startsWith('http')) {
+      const searchData = await fetchAlbumTracksFromItunes(rawInput);
+      if (searchData && searchData.tracks.length > 0) {
+        stagedCustomPlaylist = searchData;
+        updateCustomModalPreview();
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded ' + searchData.tracks.length + ' tracks!';
+        setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 1500);
+        return;
+      }
+
+      // If direct auto-lookup didn't find exact matches, switch to Search Album tab
+      const searchTabBtn = document.querySelector('.custom-tab-btn[data-tab="search-album"]');
+      const searchInput = document.getElementById('custom-album-query');
+      if (searchTabBtn && searchInput) {
+        searchInput.value = rawInput;
+        searchTabBtn.click();
+        handleAlbumSearch();
+      }
+    } else {
+      btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Playlist not loaded';
+      setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 2000);
     }
   } catch (err) {
     console.error('Import error:', err);
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import';
+    if (btn.innerHTML.includes('Importing')) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import';
+    }
   }
 }
 
