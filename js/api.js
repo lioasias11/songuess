@@ -53,28 +53,83 @@ function fetchJsonp(url, timeoutMs = 3500) {
   });
 }
 
+function scoreTrackCandidate(item, targetTitle, targetArtist) {
+  if (!item || !item.trackName) return -999;
+
+  let score = 100;
+  const normItemTitle = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(item.trackName) : item.trackName.toLowerCase();
+  const normTargetTitle = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(targetTitle) : targetTitle.toLowerCase();
+  const normItemArtist = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(item.artistName || '') : (item.artistName || '').toLowerCase();
+  const normTargetArtist = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(targetArtist || '') : (targetArtist || '').toLowerCase();
+
+  // 1. Exact title match
+  if (normItemTitle === normTargetTitle) {
+    score += 80;
+  } else if (normItemTitle.startsWith(normTargetTitle) || normTargetTitle.startsWith(normItemTitle)) {
+    score += 40;
+  } else if (normItemTitle.includes(normTargetTitle)) {
+    score += 20;
+  }
+
+  // 2. Penalize unwanted remixes, acoustic, live, instrumental, cover, slowed/sped up when target does not ask for it
+  const modifierRegex = /\b(remix|acoustic|live|instrumental|slowed|sped up|reverb|edit|tribute|cover|session|demo|karaoke|mix)\b/i;
+  const itemHasModifier = modifierRegex.test(item.trackName);
+  const targetHasModifier = modifierRegex.test(targetTitle);
+
+  if (itemHasModifier && !targetHasModifier) {
+    score -= 70;
+  }
+
+  // 3. Artist matching
+  if (normTargetArtist) {
+    if (normItemArtist === normTargetArtist) {
+      score += 50;
+    } else if (normItemArtist.includes(normTargetArtist) || normTargetArtist.includes(normItemArtist)) {
+      score += 30;
+    } else {
+      score -= 30;
+    }
+  }
+
+  // 4. Prefer titles with length closest to target
+  const lenDiff = Math.abs(normItemTitle.length - normTargetTitle.length);
+  score -= lenDiff * 2;
+
+  return score;
+}
+
 async function fetchTrackData(query) {
   if (!query) return null;
+
+  let targetArtist = '';
+  let targetTitle = query;
+  if (query.includes(' - ')) {
+    const parts = query.split(' - ');
+    targetArtist = parts[0].trim();
+    targetTitle = parts.slice(1).join(' - ').trim();
+  }
 
   // 1. Try iTunes search with original query and aliases
   const aliases = (typeof getArtistAliases === 'function') ? getArtistAliases(query) : [query];
   
   for (const q of aliases) {
     try {
-      const itunesUrl = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=song&limit=1&media=music';
-      const data = await fetchJsonp(itunesUrl, 2500);
+      const itunesUrl = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=song&limit=6&media=music';
+      const data = await fetchJsonp(itunesUrl, 3000);
       if (data && data.results && data.results.length > 0) {
-        const item = data.results[0];
-        if (item.previewUrl) {
-          let artwork = item.artworkUrl100 || '';
+        const candidates = data.results.filter(r => r.previewUrl);
+        if (candidates.length > 0) {
+          candidates.sort((a, b) => scoreTrackCandidate(b, targetTitle, targetArtist) - scoreTrackCandidate(a, targetTitle, targetArtist));
+          const best = candidates[0];
+          let artwork = best.artworkUrl100 || '';
           artwork = artwork.replace('100x100bb', '600x600bb');
 
           return {
-            previewUrl: item.previewUrl,
+            previewUrl: best.previewUrl,
             artwork: artwork,
-            trackName: item.trackName,
-            artistName: item.artistName,
-            collectionName: item.collectionName || 'Single'
+            trackName: best.trackName,
+            artistName: best.artistName,
+            collectionName: best.collectionName || 'Single'
           };
         }
       }
@@ -84,17 +139,23 @@ async function fetchTrackData(query) {
   // 2. Fallback to Deezer API for preview audio
   for (const q of aliases) {
     try {
-      const deezerUrl = 'https://api.deezer.com/search?q=' + encodeURIComponent(q) + '&limit=1&output=jsonp';
-      const data = await fetchJsonp(deezerUrl, 2500);
+      const deezerUrl = 'https://api.deezer.com/search?q=' + encodeURIComponent(q) + '&limit=5&output=jsonp';
+      const data = await fetchJsonp(deezerUrl, 3000);
       if (data && data.data && data.data.length > 0) {
-        const item = data.data[0];
-        if (item.preview) {
+        const candidates = data.data.filter(r => r.preview);
+        if (candidates.length > 0) {
+          candidates.sort((a, b) => {
+            const itemA = { trackName: a.title, artistName: (a.artist && a.artist.name) || '' };
+            const itemB = { trackName: b.title, artistName: (b.artist && b.artist.name) || '' };
+            return scoreTrackCandidate(itemB, targetTitle, targetArtist) - scoreTrackCandidate(itemA, targetTitle, targetArtist);
+          });
+          const best = candidates[0];
           return {
-            previewUrl: item.preview,
-            artwork: (item.album && (item.album.cover_big || item.album.cover_medium)) || DEFAULT_ARTWORK_SVG,
-            trackName: item.title,
-            artistName: (item.artist && item.artist.name) || 'Various',
-            collectionName: (item.album && item.album.title) || 'Single'
+            previewUrl: best.preview,
+            artwork: (best.album && (best.album.cover_big || best.album.cover_medium)) || DEFAULT_ARTWORK_SVG,
+            trackName: best.title,
+            artistName: (best.artist && best.artist.name) || 'Various',
+            collectionName: (best.album && best.album.title) || 'Single'
           };
         }
       }

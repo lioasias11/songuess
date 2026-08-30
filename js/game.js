@@ -239,17 +239,20 @@ function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
       }
     } else if (isPartialTitleMatch || isArtistMatch) {
       // User typed partial title or artist: guarantee inclusion at random position, NEVER always #1
-      if (seen.has(currentKey)) {
-        const existingIdx = list.findIndex(item => normalizeSearchStr(item.trackName + ' ' + item.artistName) === currentKey);
-        if (existingIdx >= 15) {
-          const [found] = list.splice(existingIdx, 1);
+      // If list has no matches yet (before API fetch completes), do not create a lonely 1-item answer leak
+      if (list.length > 0) {
+        if (seen.has(currentKey)) {
+          const existingIdx = list.findIndex(item => normalizeSearchStr(item.trackName + ' ' + item.artistName) === currentKey);
+          if (existingIdx >= 15) {
+            const [found] = list.splice(existingIdx, 1);
+            const randIdx = Math.floor(Math.random() * Math.min(list.length + 1, 15));
+            list.splice(randIdx, 0, found);
+          }
+        } else {
+          seen.add(currentKey);
           const randIdx = Math.floor(Math.random() * Math.min(list.length + 1, 15));
-          list.splice(randIdx, 0, found);
+          list.splice(randIdx, 0, currentItem);
         }
-      } else {
-        seen.add(currentKey);
-        const randIdx = Math.floor(Math.random() * Math.min(list.length + 1, 15));
-        list.splice(randIdx, 0, currentItem);
       }
     }
   }
@@ -277,9 +280,13 @@ function setupAutocomplete() {
       return;
     }
 
+    // Only render immediate local suggestions if we have a substantial list of local matches (>= 3)
+    // to avoid flashing a lonely 1-item answer before API results arrive
     const localMatches = getLocalMatches(val);
-    const initialMerged = mergeSuggestions(localMatches, [], val, gameState.currentSong);
-    renderAutocompleteDropdown(initialMerged);
+    if (localMatches.length >= 3) {
+      const initialMerged = mergeSuggestions(localMatches, [], val, null);
+      renderAutocompleteDropdown(initialMerged);
+    }
 
     autocompleteTimeout = setTimeout(async () => {
       if (input.value.trim() !== val) return;
@@ -287,7 +294,7 @@ function setupAutocomplete() {
       if (input.value.trim() !== val) return;
       const finalMerged = mergeSuggestions(localMatches, apiMatches, val, gameState.currentSong);
       renderAutocompleteDropdown(finalMerged);
-    }, 150);
+    }, 120);
   });
 
   input.addEventListener('keydown', (e) => {
