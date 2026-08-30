@@ -107,8 +107,8 @@ class SoundSynth {
 const synth = new SoundSynth();
 
 let isAudioPlaying = false;
+let playbackRaf = null;
 let playbackTimeout = null;
-let progressInterval = null;
 
 function getAudioPlayer() {
   return document.getElementById('game-audio');
@@ -133,11 +133,24 @@ function playCurrentSnippet() {
     if (playBtn) playBtn.classList.add('playing');
     if (playIcon) playIcon.className = 'fa-solid fa-pause';
 
-    const startTime = Date.now();
+    let startTime = performance.now();
+    let audioStarted = false;
 
-    progressInterval = setInterval(() => {
-      const elapsedFromTime = audio.currentTime > 0 ? audio.currentTime : ((Date.now() - startTime) / 1000);
-      const elapsed = Math.min(elapsedFromTime, maxAllowedDuration);
+    function frame(now) {
+      if (!isAudioPlaying) return;
+
+      // Handle iOS Safari / mobile hardware latency before audio actually begins emitting sound
+      if (!audioStarted) {
+        if (audio.currentTime > 0) {
+          audioStarted = true;
+          startTime = now - (audio.currentTime * 1000);
+        } else if (now - startTime > 300) {
+          audioStarted = true;
+          startTime = now;
+        }
+      }
+
+      const elapsed = audioStarted ? Math.min((now - startTime) / 1000, maxAllowedDuration) : 0;
       
       updateCapsuleFill(elapsed, maxAllowedDuration, false);
       if (durationLabel) {
@@ -145,13 +158,20 @@ function playCurrentSnippet() {
       }
 
       if (elapsed >= maxAllowedDuration || audio.ended) {
+        // Lock visually to the exact target segment boundary before stopping
+        updateCapsuleFill(maxAllowedDuration, maxAllowedDuration, false);
+        if (durationLabel) {
+          durationLabel.textContent = maxAllowedDuration.toFixed(1) + 's';
+        }
         stopAudio();
+        return;
       }
-    }, 16);
 
-    playbackTimeout = setTimeout(() => {
-      stopAudio();
-    }, maxAllowedDuration * 1000 + 50);
+      playbackRaf = requestAnimationFrame(frame);
+    }
+
+    playbackRaf = requestAnimationFrame(frame);
+
   }).catch(e => {
     console.error("Audio playback error:", e);
     stopAudio();
@@ -177,10 +197,23 @@ function playFullPreview() {
     if (playIcon) playIcon.className = 'fa-solid fa-pause';
 
     const totalDur = audio.duration || 30.0;
-    const startTime = Date.now();
+    let startTime = performance.now();
+    let audioStarted = false;
 
-    progressInterval = setInterval(() => {
-      const elapsed = audio.currentTime > 0 ? audio.currentTime : ((Date.now() - startTime) / 1000);
+    function frame(now) {
+      if (!isAudioPlaying) return;
+
+      if (!audioStarted) {
+        if (audio.currentTime > 0) {
+          audioStarted = true;
+          startTime = now - (audio.currentTime * 1000);
+        } else if (now - startTime > 300) {
+          audioStarted = true;
+          startTime = now;
+        }
+      }
+
+      const elapsed = audioStarted ? Math.min((now - startTime) / 1000, totalDur) : 0;
       updateCapsuleFill(elapsed, totalDur, true);
       if (durationLabel) {
         durationLabel.textContent = elapsed.toFixed(1) + 's / ' + totalDur.toFixed(0) + 's';
@@ -188,12 +221,14 @@ function playFullPreview() {
 
       if (elapsed >= totalDur || audio.ended) {
         stopAudio();
+        return;
       }
-    }, 30);
 
-    playbackTimeout = setTimeout(() => {
-      stopAudio();
-    }, totalDur * 1000);
+      playbackRaf = requestAnimationFrame(frame);
+    }
+
+    playbackRaf = requestAnimationFrame(frame);
+
   }).catch(e => {
     console.error("Full audio playback error:", e);
     stopAudio();
@@ -212,9 +247,9 @@ function stopAudio() {
     clearTimeout(playbackTimeout);
     playbackTimeout = null;
   }
-  if (progressInterval) {
-    clearInterval(progressInterval);
-    progressInterval = null;
+  if (playbackRaf) {
+    cancelAnimationFrame(playbackRaf);
+    playbackRaf = null;
   }
 
   const playBtn = document.getElementById('btn-play');

@@ -240,11 +240,12 @@ html, body {
   top: 0;
   left: 0;
   height: 100%;
-  width: 1.0%;
+  width: 0%;
   background: var(--green);
   border-radius: 999px;
-  transition: width 0.15s ease;
+  transition: none;
   z-index: 1;
+  will-change: width;
 }
 
 .capsule-segments {
