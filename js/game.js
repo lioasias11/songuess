@@ -200,8 +200,16 @@ function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
     const curArtistAliases = (typeof getArtistAliases === 'function') ? getArtistAliases(curArtist) : [curArtist];
     const normCurTitle = normalizeUnicode(curTitle);
 
-    // Check if user explicitly searched for title words
-    const isSpecificTitleMatch = (normQuery.length >= 2 && (normCurTitle.includes(normQuery) || normQuery.includes(normCurTitle)));
+    // Exact full title match (user typed the full/exact song name)
+    const isExactTitleMatch = (normCurTitle.length >= 2 && (
+      normCurTitle === normQuery || 
+      normCurTitle.replace(/\s+/g, '') === normQuery.replace(/\s+/g, '')
+    ));
+
+    // Partial title match (user typed 2+ letters or prefix/substring)
+    const isPartialTitleMatch = (!isExactTitleMatch && normQuery.length >= 2 && (
+      normCurTitle.includes(normQuery) || normQuery.includes(normCurTitle)
+    ));
 
     // Check if user searched the artist name
     const isArtistMatch = curArtistAliases.some(ca => {
@@ -217,8 +225,8 @@ function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
 
     const currentKey = normalizeSearchStr(curTitle + ' ' + curArtist);
 
-    if (isSpecificTitleMatch) {
-      // User specifically typed the title: show at top
+    if (isExactTitleMatch) {
+      // User specifically typed the full exact title: show at top
       if (seen.has(currentKey)) {
         const existingIdx = list.findIndex(item => normalizeSearchStr(item.trackName + ' ' + item.artistName) === currentKey);
         if (existingIdx > 0) {
@@ -229,8 +237,8 @@ function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
         seen.add(currentKey);
         list.unshift(currentItem);
       }
-    } else if (isArtistMatch) {
-      // User typed artist: guarantee inclusion at a random position among the 15 suggestions
+    } else if (isPartialTitleMatch || isArtistMatch) {
+      // User typed partial title or artist: guarantee inclusion at random position, NEVER always #1
       if (seen.has(currentKey)) {
         const existingIdx = list.findIndex(item => normalizeSearchStr(item.trackName + ' ' + item.artistName) === currentKey);
         if (existingIdx >= 15) {
