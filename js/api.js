@@ -369,46 +369,236 @@ async function fetchSongsByQueryFromItunes(query) {
   return null;
 }
 
-async function fetchApplePlaylistTracks(playlistUrl) {
-  try {
-    const jinaUrl = 'https://r.jina.ai/' + playlistUrl;
-    const res = await fetch(jinaUrl);
-    if (res.ok) {
-      const md = await res.text();
-      const idRegex = /music\.apple\.com\/[^\/]+\/song\/[^\/]+\/(\d+)/g;
-      let m;
-      const songIds = [];
-      const seenIds = new Set();
-      while ((m = idRegex.exec(md)) !== null) {
-        const id = m[1];
-        if (!seenIds.has(id)) {
-          seenIds.add(id);
-          songIds.push(id);
-        }
+async function fetchApplePlaylistTracks(rawUrl) {
+  const urlMatch = (rawUrl || '').match(/https?:\/\/[^\s"'<>]+/i);
+  const targetUrl = urlMatch ? urlMatch[0] : (rawUrl || '').trim();
+  if (!targetUrl) return null;
+
+  function extractFromSerializedServerData(text) {
+    if (!text) return null;
+    try {
+      const match = text.match(/<script[^>]*id=["']serialized-server-data["'][^>]*>([\s\S]*?)<\/script>/i);
+      if (!match) return null;
+      const parsed = JSON.parse(match[1]);
+      const root = parsed.data && parsed.data[0];
+      if (!root || !root.data || !root.data.sections) return null;
+
+      let playlistTitle = 'Apple Music Playlist';
+      const headerSection = root.data.sections.find(s => s.itemKind === 'containerDetailHeaderLockup' || (s.items && s.items[0] && s.items[0].title));
+      if (headerSection && headerSection.items && headerSection.items[0] && headerSection.items[0].title) {
+        playlistTitle = headerSection.items[0].title;
       }
 
-      let title = 'Apple Music Playlist';
-      const titleMatch = md.match(/Title:\s*‎?([^\n\r]+)/i) || md.match(/##\s*([^\n\r]+)/);
-      if (titleMatch) {
-        title = titleMatch[1].replace(/by .* - Apple Music|- Apple Music/gi, '').trim();
-      }
-
-      if (songIds.length > 0) {
-        const batch = songIds.slice(0, 150);
-        const lookupData = await fetchJsonp('https://itunes.apple.com/lookup?id=' + batch.join(','));
-        if (lookupData && lookupData.results) {
-          const tracks = lookupData.results
-            .filter(s => s.artistName && s.trackName)
-            .map(s => s.artistName + ' - ' + s.trackName);
-
-          if (tracks.length > 0) {
-            return { title, tracks };
+      const trackSection = root.data.sections.find(s => s.itemKind === 'trackLockup' || (s.items && s.items.length > 5));
+      if (trackSection && trackSection.items) {
+        const tracks = [];
+        for (const item of trackSection.items) {
+          const title = item.title || (item.attributes && item.attributes.name);
+          const artist = item.artistName || item.subtitle || (item.attributes && item.attributes.artistName);
+          if (title && artist) {
+            tracks.push(`${artist} - ${title}`);
+          } else if (title) {
+            tracks.push(title);
           }
         }
+        if (tracks.length > 0) {
+          return { title: playlistTitle, tracks };
+        }
+      }
+    } catch (e) {
+      console.warn('Error extracting from serialized-server-data:', e);
+    }
+    return null;
+  }
+
+  function extractSongIds(text) {
+    const songIds = new Set();
+    if (!text) return [];
+    
+    // Isolate main tracklist section before recommendations/shelf-grid footer
+    const mainSection = text.split(/class="[^"]*(?:shelf-grid|shelf-component|containerDetailTracklistFooter)[^"]*"/i)[0];
+
+    // Pattern 1: /song/name/id or /song/id
+    const songUrlRegex = /\/song\/(?:[^\/]+\/)?(\d{6,14})/g;
+    let m;
+    while ((m = songUrlRegex.exec(mainSection)) !== null) {
+      if (m[1]) songIds.add(m[1]);
+    }
+    
+    // Pattern 2: standard music.apple.com song urls
+    const stdRegex = /music\.apple\.com\/[^\/]+\/song\/[^\/]+\/(\d+)/g;
+    while ((m = stdRegex.exec(mainSection)) !== null) {
+      if (m[1]) songIds.add(m[1]);
+    }
+
+    return Array.from(songIds);
+  }
+
+  function extractTitle(text) {
+    if (!text) return 'Apple Music Playlist';
+    const m = text.match(/<title>([^<]+)<\/title>/i) ||
+              text.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+              text.match(/Title:\s*‎?([^\n\r]+)/i) ||
+              text.match(/##\s*([^\n\r]+)/);
+    if (m && m[1]) {
+      return m[1].replace(/by .* - Apple Music|- Apple Music|on Apple Music/gi, '').trim();
+    }
+    return 'Apple Music Playlist';
+  }
+
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 7000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timer);
+      return res;
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
+    }
+  }
+
+  let html = null;
+  let title = 'Apple Music Playlist';
+  let songIds = [];
+
+  // Strategy 1: Jina with HTML mode (super fast, full HTML)
+  try {
+    const res = await fetchWithTimeout('https://r.jina.ai/' + targetUrl, {
+      headers: {
+        'X-Return-Format': 'html',
+        'X-Target-Selector': 'body'
+      }
+    }, 6000);
+    if (res.ok) {
+      const text = await res.text();
+      // First check direct structured data
+      const directData = extractFromSerializedServerData(text);
+      if (directData && directData.tracks.length > 0) {
+        return directData;
+      }
+      const ids = extractSongIds(text);
+      if (ids.length > 0) {
+        html = text;
+        songIds = ids;
+        title = extractTitle(text);
       }
     }
   } catch (e) {
-    console.error('Error fetching Apple playlist tracks:', e);
+    console.warn('Jina proxy attempt failed, falling back:', e);
   }
+
+  // Strategy 2: Allorigins fallback proxy
+  if (songIds.length === 0) {
+    try {
+      const res = await fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl), {}, 6000);
+      if (res.ok) {
+        const json = await res.json();
+        const text = json.contents || '';
+        const directData = extractFromSerializedServerData(text);
+        if (directData && directData.tracks.length > 0) {
+          return directData;
+        }
+        const ids = extractSongIds(text);
+        if (ids.length > 0) {
+          songIds = ids;
+          title = extractTitle(text);
+        }
+      }
+    } catch (e) {
+      console.warn('Allorigins proxy failed:', e);
+    }
+  }
+
+  // Strategy 3: Codetabs fallback proxy
+  if (songIds.length === 0) {
+    try {
+      const res = await fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(targetUrl), {}, 6000);
+      if (res.ok) {
+        const text = await res.text();
+        const directData = extractFromSerializedServerData(text);
+        if (directData && directData.tracks.length > 0) {
+          return directData;
+        }
+        const ids = extractSongIds(text);
+        if (ids.length > 0) {
+          songIds = ids;
+          title = extractTitle(text);
+        }
+      }
+    } catch (e) {
+      console.warn('Codetabs proxy failed:', e);
+    }
+  }
+
+  if (songIds.length === 0) {
+    return null;
+  }
+
+  // Detect storefront country code from URL (e.g. 'il', 'us', 'gb', etc.)
+  const countryMatch = targetUrl.match(/music\.apple\.com\/([a-z]{2})\//i);
+  const storefront = countryMatch ? countryMatch[1].toLowerCase() : 'il';
+
+  // Fetch track details with regional storefront support & chunking
+  try {
+    const allResults = [];
+    const chunkSize = 70;
+    const missingIds = [];
+
+    for (let i = 0; i < songIds.length; i += chunkSize) {
+      const chunk = songIds.slice(i, i + chunkSize);
+      try {
+        const lookupUrl = `https://itunes.apple.com/lookup?id=${chunk.join(',')}&country=${storefront}`;
+        const lookupData = await fetchJsonp(lookupUrl, 7000);
+        if (lookupData && lookupData.results) {
+          const found = lookupData.results.filter(s => s.wrapperType === 'track' && s.artistName && s.trackName);
+          allResults.push(...found);
+
+          const foundIds = new Set(found.map(s => String(s.trackId)));
+          chunk.forEach(id => {
+            if (!foundIds.has(String(id))) missingIds.push(id);
+          });
+        }
+      } catch (e) {
+        console.warn('Storefront lookup chunk error:', e);
+      }
+    }
+
+    // If any tracks were missing and primary storefront wasn't US, fallback to US storefront
+    if (missingIds.length > 0 && storefront !== 'us') {
+      for (let i = 0; i < missingIds.length; i += chunkSize) {
+        const chunk = missingIds.slice(i, i + chunkSize);
+        try {
+          const usUrl = `https://itunes.apple.com/lookup?id=${chunk.join(',')}&country=us`;
+          const usData = await fetchJsonp(usUrl, 5000);
+          if (usData && usData.results) {
+            const found = usData.results.filter(s => s.wrapperType === 'track' && s.artistName && s.trackName);
+            allResults.push(...found);
+          }
+        } catch (e) { }
+      }
+    }
+
+    // Deduplicate while preserving order
+    const seenTracks = new Set();
+    const tracks = [];
+    for (const s of allResults) {
+      const name = `${s.artistName} - ${s.trackName}`;
+      const key = name.toLowerCase().trim();
+      if (!seenTracks.has(key)) {
+        seenTracks.add(key);
+        tracks.push(name);
+      }
+    }
+
+    if (tracks.length > 0) {
+      return { title, tracks };
+    }
+  } catch (e) {
+    console.error('Error fetching iTunes lookup details:', e);
+  }
+
   return null;
 }
+

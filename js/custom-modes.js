@@ -316,35 +316,46 @@ async function handleAppleLinkImport() {
 
   if (!rawInput) return;
 
+  // Extract clean URL from mobile shared text (e.g. "Listen to ...: https://music.apple.com/...")
+  const urlMatch = rawInput.match(/https?:\/\/[^\s"'<>]+/i);
+  const cleanUrl = urlMatch ? urlMatch[0] : rawInput;
+
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Importing...';
 
   try {
     // Check if this is a private iCloud library link (starts with /library/playlist/p.)
-    if (rawInput.includes('library/playlist/p.')) {
+    if (cleanUrl.includes('library/playlist/p.')) {
       alert('This is a private iCloud library link (which requires your Apple ID password).\n\nTo import your playlist:\n1. In the Apple Music app, tap the 3 dots (···) on your playlist\n2. Tap "Share Playlist" ➔ "Copy Link" (it will start with /playlist/.../pl.u-)\n3. Paste the share link here!');
       return;
     }
 
-    // 1. Check for Apple Music public playlist link: /playlist/
-    if (rawInput.includes('playlist/')) {
-      const plData = await fetchApplePlaylistTracks(rawInput);
+    // 1. Check for Apple Music public playlist link: /playlist/ or pl.u- or pl.
+    const isPlaylistLink = /playlist\/|pl\.u-|pl\./i.test(cleanUrl);
+    if (isPlaylistLink) {
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading tracks...';
+      const plData = await fetchApplePlaylistTracks(cleanUrl);
       if (plData && plData.tracks.length > 0) {
         stagedApplePlaylist = plData;
         updateAppleModalPreview();
         btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded ' + plData.tracks.length + ' tracks!';
         setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 1500);
         return;
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Playlist not loaded';
+        alert('Could not load tracks from this Apple Music playlist.\n\nPlease check that the playlist is public and that the link starts with /playlist/ or pl.u-');
+        setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 2000);
+        return;
       }
     }
 
     // 2. Check for Apple Music collection ID (Album)
-    const appleMatch = rawInput.match(/apple\.com\/.*\/album\/([^\/]+)\/(\d+)/i) || rawInput.match(/id=(\d+)/i) || rawInput.match(/\/(\d{6,12})/);
+    const appleMatch = cleanUrl.match(/apple\.com\/.*\/album\/([^\/]+)\/(\d+)/i) || cleanUrl.match(/id=(\d+)/i) || cleanUrl.match(/\/(\d{6,12})/);
     if (appleMatch) {
       const collectionId = appleMatch[2] || appleMatch[1];
       if (/^\d+$/.test(collectionId)) {
         const lookupUrl = 'https://itunes.apple.com/lookup?id=' + collectionId + '&entity=song';
-        const lookupData = await fetchJsonp(lookupUrl, 4000);
+        const lookupData = await fetchJsonp(lookupUrl, 5000);
         if (lookupData && lookupData.results && lookupData.results.length > 0) {
           const albumInfo = lookupData.results[0];
           const songs = lookupData.results.filter(r => r.wrapperType === 'track');
@@ -363,39 +374,46 @@ async function handleAppleLinkImport() {
       }
     }
 
-    // 3. Direct search by text / album name
-    const searchData = await fetchAlbumTracksFromItunes(rawInput);
-    if (searchData && searchData.tracks.length > 0) {
-      stagedApplePlaylist = searchData;
-      updateAppleModalPreview();
-      btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded ' + searchData.tracks.length + ' tracks!';
-      setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 1500);
-      return;
-    }
+    // 3. Direct search by text / album name if not a URL
+    if (!cleanUrl.startsWith('http')) {
+      const searchData = await fetchAlbumTracksFromItunes(rawInput);
+      if (searchData && searchData.tracks.length > 0) {
+        stagedApplePlaylist = searchData;
+        updateAppleModalPreview();
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded ' + searchData.tracks.length + ' tracks!';
+        setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 1500);
+        return;
+      }
 
-    // 4. Fallback search by query songs
-    const queryData = await fetchSongsByQueryFromItunes(rawInput);
-    if (queryData && queryData.tracks.length > 0) {
-      stagedApplePlaylist = queryData;
-      updateAppleModalPreview();
-      btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded ' + queryData.tracks.length + ' tracks!';
-      setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 1500);
-      return;
-    }
+      // 4. Fallback search by query songs
+      const queryData = await fetchSongsByQueryFromItunes(rawInput);
+      if (queryData && queryData.tracks.length > 0) {
+        stagedApplePlaylist = queryData;
+        updateAppleModalPreview();
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Loaded ' + queryData.tracks.length + ' tracks!';
+        setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 1500);
+        return;
+      }
 
-    // If direct link didn't parse, switch to search tab
-    const searchTab = document.querySelector('.apple-tab-btn[data-tab="apple-search"]');
-    const searchInput = document.getElementById('apple-album-query');
-    if (searchTab && searchInput) {
-      searchInput.value = rawInput;
-      searchTab.click();
-      handleAppleAlbumSearch();
+      // If text didn't parse, switch to search tab
+      const searchTab = document.querySelector('.apple-tab-btn[data-tab="apple-search"]');
+      const searchInput = document.getElementById('apple-album-query');
+      if (searchTab && searchInput) {
+        searchInput.value = rawInput;
+        searchTab.click();
+        handleAppleAlbumSearch();
+      }
+    } else {
+      btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Invalid Link';
+      setTimeout(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import'; }, 2000);
     }
   } catch (err) {
     console.error('Apple Music import error:', err);
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import';
+    if (btn.innerHTML.includes('Importing')) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Import';
+    }
   }
 }
 
