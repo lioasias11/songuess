@@ -47,11 +47,12 @@
         <div class="header-stats-pill">
           <span id="player-name-span" class="player-name-pill" title="Click to rename profile"><i
               class="fa-solid fa-user"></i> <strong id="player-name-val">Guest</strong></span>
+          <span class="stat-divider stat-divider-name">•</span>
+          <span class="stat-item"><i class="fa-solid fa-trophy"></i> <strong id="score-val">0</strong> <span class="stat-text-label" data-i18n="pts">PTS</span></span>
           <span class="stat-divider">•</span>
-          <span><i class="fa-solid fa-trophy"></i> <strong id="score-val">0</strong> PTS</span>
-          <span class="stat-divider">•</span>
-          <span><i class="fa-solid fa-fire"></i> <strong id="streak-val">0</strong> STREAK</span>
+          <span class="stat-item"><i class="fa-solid fa-fire"></i> <strong id="streak-val">0</strong> <span class="stat-text-label" data-i18n="streak">STREAK</span></span>
         </div>
+        <button id="btn-lang-toggle" class="icon-btn lang-toggle-pill" title="Switch Language / החלף שפה"><span id="lang-toggle-text">עב 🇮🇱</span></button>
         <button id="btn-sfx-toggle" class="icon-btn" title="Toggle Sound FX"><i
             class="fa-solid fa-volume-high"></i></button>
         <button id="btn-stats-modal" class="icon-btn" title="View Statistics"><i
@@ -264,21 +265,33 @@
   <div id="name-setup-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header">
-        <h2>CHOOSE YOUR STAGE NAME</h2>
-        <p class="modal-subtitle">Enter your name to track stats and compete on the leaderboard</p>
+        <h2 data-i18n="name_modal_title">CHOOSE YOUR STAGE NAME</h2>
+        <p class="modal-subtitle" data-i18n="name_modal_sub">Enter your name to track stats and compete on the leaderboard</p>
       </div>
 
-      <div class="name-setup-form" style="display: flex; flex-direction: column; gap: 1rem;">
+      <div class="name-setup-form" style="display: flex; flex-direction: column; gap: 1.1rem;">
+        <!-- Language Selection -->
+        <div class="lang-selection-box">
+          <label class="lang-selection-label" data-i18n="select_language">Select Language / בחר שפה</label>
+          <div class="lang-pills-row">
+            <button type="button" class="lang-choice-btn" data-lang="en">English 🇺🇸</button>
+            <button type="button" class="lang-choice-btn active" data-lang="he">עברית 🇮🇱</button>
+          </div>
+        </div>
+
         <div style="display: flex; flex-direction: column; gap: 6px;">
           <input type="text" id="username-input" placeholder="e.g. DJ Spark, SynthwaveFan" maxlength="15"
-            autocomplete="off" spellcheck="false"
+            autocomplete="off" spellcheck="false" data-i18n-placeholder="name_input_placeholder"
             style="width: 100%; padding: 0.8rem 1rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--bg-input); color: #fff; font-family: var(--font-main); font-size: 0.95rem;">
           <p id="name-validation-msg" class="validation-msg"
             style="color: #ef4444; font-size: 0.75rem; font-weight: 600; min-height: 16px; margin: 2px 0 0 4px;"></p>
         </div>
 
-        <button id="btn-submit-name" class="modal-btn-primary" style="width: 100%;">Start Playing <i
-            class="fa-solid fa-play"></i></button>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button id="btn-submit-name" class="modal-btn-primary" style="width: 100%;"><span data-i18n="start_playing_btn">Start Playing</span> <i
+              class="fa-solid fa-play"></i></button>
+          <button id="btn-play-anonymous" class="modal-btn-secondary" style="width: 100%;"><i class="fa-solid fa-user-secret"></i> <span data-i18n="play_anonymous_btn">Play Anonymously</span></button>
+        </div>
       </div>
     </div>
   </div>

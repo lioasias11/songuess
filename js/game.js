@@ -540,13 +540,15 @@ function endGame(hasWon) {
   const modalSub = document.getElementById('modal-subtitle');
 
   if (modalTitle) {
-    modalTitle.textContent = hasWon ? "Track Decrypted!" : "Track Lost";
+    modalTitle.textContent = hasWon ? t('correct_title') : t('gameover_title');
   }
   if (modalSub) {
     if (hasWon) {
-      modalSub.innerHTML = `<span style="color: var(--green); font-weight: 700;">UNLOCKED IN ${DURATIONS[gameState.attemptsUsed]}s • +${gameState.score} PTS</span>`;
+      modalSub.innerHTML = `<span style="color: var(--green); font-weight: 700;">${t('correct_sub', { time: DURATIONS[gameState.attemptsUsed], pts: gameState.score })}</span>`;
     } else {
-      modalSub.innerHTML = `<span style="color: var(--text-secondary);">BETTER LUCK NEXT ROUND • 0 PTS</span>`;
+      const songTitle = (gameState.currentSong && gameState.currentSong.title) || '';
+      const songArtist = (gameState.currentSong && gameState.currentSong.artist) || '';
+      modalSub.innerHTML = `<span style="color: var(--text-secondary);">${t('gameover_sub', { title: songTitle, artist: songArtist })}</span>`;
     }
   }
 
@@ -579,7 +581,7 @@ function updateHeaderStats() {
 
   if (scoreVal) scoreVal.textContent = (stats.totalScore || 0).toLocaleString();
   if (streakVal) streakVal.textContent = stats.currentStreak || 0;
-  if (nameVal) nameVal.textContent = currentUsername || 'Guest';
+  if (nameVal) nameVal.textContent = currentUsername || t('guest_name');
 }
 
 function showResultModal() {
@@ -696,6 +698,19 @@ function hideNameSetupModal() {
   if (modal) modal.classList.remove('active');
 }
 
+function playAnonymously() {
+  currentUsername = t('guest_name');
+  localStorage.setItem('songuess_username', currentUsername);
+
+  updateHeaderStats();
+  hideNameSetupModal();
+  synth.playWin();
+
+  if (!gameState.currentSong) {
+    startNewGame('white-girl-music');
+  }
+}
+
 function saveUsername() {
   const input = document.getElementById('username-input');
   const msg = document.getElementById('name-validation-msg');
@@ -703,7 +718,7 @@ function saveUsername() {
   const val = (input.value || '').trim();
 
   if (val.length < 2) {
-    if (msg) msg.textContent = 'Name must be at least 2 characters.';
+    if (msg) msg.textContent = t('validation_min_chars');
     return;
   }
 
@@ -792,7 +807,7 @@ async function startNewGame(genre = 'white-girl-music') {
 
   const feedback = document.getElementById('game-feedback-text');
   if (feedback) {
-    feedback.textContent = 'Listen to snippet and guess the song';
+    feedback.textContent = t('listen_prompt');
     feedback.style.color = 'var(--text-secondary)';
   }
 
@@ -854,9 +869,10 @@ function updateSkipButtonText() {
   const nextDuration = DURATIONS[gameState.attemptsUsed + 1] || 10.0;
   const diff = (nextDuration - currentDuration).toFixed(1);
 
+  const iconHtml = `<i class="fa-solid fa-forward-step"></i>`;
   if (gameState.attemptsUsed >= MAX_ATTEMPTS - 1) {
-    btn.innerHTML = `<i class="fa-solid fa-forward-step"></i> Skip (Final Attempt)`;
+    btn.innerHTML = `${iconHtml} ${t('skip_final')}`;
   } else {
-    btn.innerHTML = `<i class="fa-solid fa-forward-step"></i> Skip (+${diff}s)`;
+    btn.innerHTML = `${iconHtml} ${t('skip_diff', { diff })}`;
   }
 }

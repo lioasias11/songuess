@@ -859,34 +859,58 @@ html, body {
    ======================================================== */
 @media (max-width: 600px) {
   .app-container {
-    padding: max(0.4rem, env(safe-area-inset-top)) 0.85rem max(0.4rem, env(safe-area-inset-bottom));
+    padding: max(0.4rem, env(safe-area-inset-top)) 0.65rem max(0.4rem, env(safe-area-inset-bottom));
   }
 
   .app-header {
-    height: 40px;
+    height: 38px;
     margin-bottom: 0.2rem;
+    gap: 4px;
   }
 
   .brand-btn {
-    font-size: 1rem;
+    font-size: 0.95rem;
+    gap: 5px;
+    flex-shrink: 0;
   }
 
   .brand-icon {
-    width: 24px;
-    height: 24px;
-    font-size: 0.75rem;
+    width: 22px;
+    height: 22px;
+    font-size: 0.7rem;
+  }
+
+  .header-right {
+    gap: 4px;
+    flex-shrink: 0;
   }
 
   .header-stats-pill {
-    padding: 0.25rem 0.6rem;
-    font-size: 0.72rem;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.7rem;
     gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .header-stats-pill .player-name-pill,
+  .header-stats-pill .stat-divider-name,
+  .header-stats-pill .stat-text-label {
+    display: none;
+  }
+
+  .lang-toggle-pill {
+    padding: 0 6px !important;
+    font-size: 0.72rem !important;
+    height: 28px !important;
+    min-width: 32px;
+    flex-shrink: 0;
   }
 
   .icon-btn {
     width: 28px;
     height: 28px;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
+    flex-shrink: 0;
   }
 
   /* Smooth horizontally scrollable category pill track on phones (Bigger Pills) */
@@ -894,8 +918,8 @@ html, body {
     flex-wrap: nowrap;
     overflow-x: auto;
     justify-content: flex-start;
-    padding: 6px 4px 10px;
-    gap: 10px;
+    padding: 4px 2px 8px;
+    gap: 8px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
@@ -906,9 +930,9 @@ html, body {
 
   .genre-pill-btn {
     flex-shrink: 0;
-    padding: 0.55rem 1.2rem;
-    font-size: 0.95rem;
-    font-weight: 750;
+    padding: 0.45rem 0.95rem;
+    font-size: 0.88rem;
+    font-weight: 700;
   }
 
   /* Compact Hero Play Section for Phone Screen Heights */
@@ -945,44 +969,81 @@ html, body {
     height: 14px;
   }
 
-  /* Bottom Controls: Compact & Thumb Friendly */
+  /* Bottom Controls: Ergonomic Full-Width Stacked Layout on Phones */
   .bottom-controls-row {
+    flex-direction: column;
     gap: 8px;
+    width: 100%;
   }
 
   .search-input-wrapper {
-    height: 44px;
-    padding: 0 8px 0 12px;
+    width: 100%;
+    height: 46px;
+    padding: 0 10px 0 14px;
+    box-sizing: border-box;
+  }
+
+  [dir="rtl"] .search-input-wrapper {
+    padding: 0 14px 0 10px;
   }
 
   #guess-input {
-    font-size: 0.88rem;
+    font-size: 0.9rem;
   }
 
   .search-icon {
-    font-size: 0.85rem;
+    font-size: 0.88rem;
   }
 
   .submit-pill-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 0.75rem;
+    width: 30px;
+    height: 30px;
+    font-size: 0.78rem;
+  }
+
+  .action-buttons-group {
+    width: 100%;
+    display: flex;
+    gap: 8px;
   }
 
   .skip-pill-btn {
+    flex: 1;
     height: 44px;
-    padding: 0 14px;
-    font-size: 0.85rem;
+    padding: 0 16px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    justify-content: center;
   }
 
   .giveup-pill-btn {
     width: 44px;
     height: 44px;
     font-size: 0.9rem;
+    flex-shrink: 0;
   }
 
   .modal-card {
     padding: 1.1rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .brand-name {
+    font-size: 0.85rem;
+  }
+  .header-stats-pill {
+    padding: 0.15rem 0.35rem;
+    font-size: 0.65rem;
+  }
+  .icon-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 0.68rem;
+  }
+  .lang-toggle-pill {
+    font-size: 0.68rem !important;
+    height: 26px !important;
   }
 }
 
@@ -1488,3 +1549,141 @@ html, body {
   border-color: #fa2d48 !important;
   color: #fb7185 !important;
 }
+
+/* Language Selection Styling */
+.lang-toggle-pill {
+  font-size: 0.82rem !important;
+  font-weight: 700;
+  padding: 0 10px !important;
+  width: auto !important;
+  border-radius: 999px !important;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.lang-selection-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+}
+
+.lang-selection-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.lang-pills-row {
+  display: flex;
+  gap: 8px;
+}
+
+.lang-choice-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-main);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.lang-choice-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.lang-choice-btn.active {
+  background: var(--green);
+  color: #000;
+  border-color: var(--green);
+  font-weight: 700;
+  box-shadow: 0 0 10px var(--green-glow);
+}
+
+/* RTL Support for Hebrew UI */
+[dir="rtl"] body,
+body.rtl-mode {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="rtl"] .modal-close-btn {
+  right: auto;
+  left: 1.2rem;
+}
+
+[dir="rtl"] .search-input-wrapper {
+  padding: 0 16px 0 12px;
+}
+
+[dir="rtl"] .dropdown-item {
+  text-align: right;
+}
+
+[dir="rtl"] .leaderboard-row {
+  text-align: right;
+}
+
+[dir="rtl"] .leaderboard-player-info {
+  text-align: right;
+}
+
+[dir="rtl"] .stat-box {
+  text-align: center;
+}
+
+[dir="rtl"] .reveal-actions {
+  justify-content: flex-start;
+}
+
+/* Keep Audio Progress Bar strictly LTR in Hebrew mode */
+.progress-bar-container,
+.capsule-track,
+.capsule-segments {
+  direction: ltr !important;
+}
+
+[dir="rtl"] .progress-bar-container,
+[dir="rtl"] .capsule-track,
+[dir="rtl"] .capsule-segments {
+  direction: ltr !important;
+}
+
+[dir="rtl"] .c-segment {
+  border-right: 2px solid #121212 !important;
+  border-left: none !important;
+}
+
+[dir="rtl"] .c-segment:last-child {
+  border-right: none !important;
+}
+
+[dir="rtl"] .capsule-progress {
+  left: 0 !important;
+  right: auto !important;
+}
+
+[dir="rtl"] .dist-chart,
+[dir="rtl"] .dist-row,
+[dir="rtl"] .dist-bar-wrapper {
+  direction: ltr !important;
+}
+
+[dir="rtl"] .dist-row {
+  flex-direction: row !important;
+}
+

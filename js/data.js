@@ -21,6 +21,263 @@ const DURATIONS = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0];
 const SCORE_TIERS = [1000, 800, 600, 400, 200, 100];
 const MAX_ATTEMPTS = 6;
 
+let currentLanguage = localStorage.getItem('songuess_lang') || 'en';
+
+const TRANSLATIONS = {
+  en: {
+    app_title: "SONGUESS // Heardle Music Guessing Game",
+    brand_name: "SONGUESS",
+    tagline: "Guess the song from short snippets!",
+    guest_name: "Guest",
+    pts: "PTS",
+    streak: "STREAK",
+    best: "Best",
+    played: "Played",
+    win_rate: "Win Rate",
+    listen_prompt: "Listen to snippet and guess the song",
+    search_placeholder: "Search songs...",
+    skip_btn: "Skip",
+    giveup_title: "Give up & reveal track",
+    correct_title: "Track Decrypted!",
+    correct_sub: "Unlocked in {time}s • +{pts} PTS",
+    gameover_title: "Game Over",
+    gameover_sub: "The song was {title} by {artist}",
+    next_song: "Next Song",
+    skip_diff: "Skip (+{diff}s)",
+    skip_final: "Skip (Final Attempt)",
+    clear_input: "Clear input",
+    submit_guess: "Submit guess",
+    name_modal_title: "CHOOSE YOUR STAGE NAME",
+    name_modal_sub: "Enter your name to track stats and compete on the leaderboard",
+    name_input_placeholder: "e.g. DJ Spark, SynthwaveFan",
+    start_playing_btn: "Start Playing",
+    play_anonymous_btn: "Play Anonymously",
+    select_language: "Select Language / בחר שפה",
+    edit_switch_name: "Edit / Switch Name",
+    close: "Close",
+    leaderboard_title: "SONGUESS LEADERBOARD",
+    leaderboard_sub: "Top players ranked by total points",
+    stats_title: "YOUR STATISTICS",
+    stats_sub: "Performance and guess distribution",
+    guess_distribution: "Guess Distribution",
+    spotify_modal_title: "CUSTOM PLAYLIST & ALBUM",
+    spotify_modal_sub: "Play any Spotify playlist, album, or custom tracklist",
+    apple_modal_title: "APPLE MUSIC PLAYLISTS",
+    apple_modal_sub: "Play Israeli and international Apple Music playlists or albums",
+    tab_link: "Link",
+    tab_search_album: "Search Album",
+    tab_paste_list: "Paste List",
+    tab_featured: "Featured",
+    paste_link_label: "Paste Music Link or Album / Artist Name",
+    paste_link_placeholder: "e.g. Apple Music link, Spotify link, or 'Peer Tasi רדיו שטח 2'...",
+    import_btn: "Import",
+    play_playlist_btn: "Play This Playlist",
+    loaded_badge: "{count} tracks",
+    no_playlist_loaded: "No playlist loaded",
+    validation_min_chars: "Name must be at least 2 characters.",
+    genres: {
+      "white-girl-music": "White Girl Music",
+      "pop": "Pop",
+      "rock": "Rock",
+      "hiphop": "Hip-Hop",
+      "electronic": "EDM",
+      "80s": "80s",
+      "90s": "90s",
+      "2000s": "2000s",
+      "spotify": "Spotify",
+      "apple-music": "Apple Music"
+    }
+  },
+  he: {
+    app_title: "גלהשיר // משחק ניחוש שירים",
+    brand_name: "גלהשיר",
+    tagline: "נחש את השיר מתוך קטעי שמע קצרים!",
+    guest_name: "אנונימי",
+    pts: "נקודות",
+    streak: "רצף",
+    best: "שיא",
+    played: "משחקים",
+    win_rate: "אחוזי ניצחון",
+    listen_prompt: "האזן לקטע ונחש את השיר",
+    search_placeholder: "חפש שיר או אמן...",
+    skip_btn: "דלג",
+    giveup_title: "וותר וחשוף את השיר",
+    correct_title: "פיצחת את השיר!",
+    correct_sub: "נפתח ב-{time} שנ' • +{pts} נקודות",
+    gameover_title: "המשחק הסתיים",
+    gameover_sub: "השיר היה {title} מאת {artist}",
+    next_song: "שיר הבא",
+    skip_diff: "דלג (+{diff} שנ')",
+    skip_final: "דלג (ניסיון אחרון)",
+    clear_input: "נקה חיפוש",
+    submit_guess: "שלח ניחוש",
+    name_modal_title: "בחר כינוי לשחקן",
+    name_modal_sub: "הזן שם למעקב אחר הסטטיסטיקה והטבלאות",
+    name_input_placeholder: "למשל: מלך הפופ, רוקר 99",
+    start_playing_btn: "התחל לשחק",
+    play_anonymous_btn: "שחק כאנונימי",
+    select_language: "בחר שפה / Select Language",
+    edit_switch_name: "שנה שם משתמש",
+    close: "סגור",
+    leaderboard_title: "טבלת המובילים - גלהשיר",
+    leaderboard_sub: "השחקנים המובילים לפי ניקוד מצטבר",
+    stats_title: "הסטטיסטיקה שלך",
+    stats_sub: "ביצועים והתפלגות ניחושים",
+    guess_distribution: "התפלגות ניחושים",
+    spotify_modal_title: "פלייליסט ואלבומים מספוטיפיי",
+    spotify_modal_sub: "שחק עם כל פלייליסט, אלבום או רשימת שירים",
+    apple_modal_title: "פלייליסטים מאפל מיוזיק",
+    apple_modal_sub: "שחק עם פלייליסטים ישראליים ולועזיים מאפל מיוזיק",
+    tab_link: "קישור",
+    tab_search_album: "חיפוש אלבום",
+    tab_paste_list: "הדבקת רשימה",
+    tab_featured: "מומלצים",
+    paste_link_label: "הדבק קישור למוזיקה או שם אלבום / אמן",
+    paste_link_placeholder: "למשל: קישור לספוטיפיי, אפל מיוזיק, או 'פאר טסי רדיו שטח 2'...",
+    import_btn: "ייבוא",
+    play_playlist_btn: "שחק עם הפלייליסט",
+    loaded_badge: "{count} שירים",
+    no_playlist_loaded: "לא נטען פלייליסט",
+    validation_min_chars: "השם חייב להכיל לפחות 2 תווים.",
+    genres: {
+      "white-girl-music": "להיטי פופ מוכרים",
+      "pop": "פופ",
+      "rock": "רוק",
+      "hiphop": "היפ-הופ",
+      "electronic": "אלקטרוני",
+      "80s": "שנות ה-80",
+      "90s": "שנות ה-90",
+      "2000s": "שנות ה-2000",
+      "spotify": "ספוטיפיי",
+      "apple-music": "אפל מיוזיק"
+    }
+  }
+};
+
+function t(key, params = {}) {
+  const dict = TRANSLATIONS[currentLanguage] || TRANSLATIONS.en;
+  let text = dict[key] || (TRANSLATIONS.en && TRANSLATIONS.en[key]) || key;
+  for (const [pKey, pVal] of Object.entries(params)) {
+    text = text.replace(new RegExp('\\{' + pKey + '\\}', 'g'), pVal);
+  }
+  return text;
+}
+
+function applyLanguage(lang) {
+  currentLanguage = (lang === 'he') ? 'he' : 'en';
+  localStorage.setItem('songuess_lang', currentLanguage);
+
+  const isRtl = (currentLanguage === 'he');
+  document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  document.documentElement.lang = currentLanguage;
+  if (isRtl) {
+    document.body.classList.add('rtl-mode');
+  } else {
+    document.body.classList.remove('rtl-mode');
+  }
+
+  // Update title
+  document.title = t('app_title');
+
+  // Update brand name
+  const brandName = document.querySelector('.brand-name');
+  if (brandName) brandName.textContent = t('brand_name');
+
+  // Update language toggle button in header
+  const langToggleText = document.getElementById('lang-toggle-text');
+  if (langToggleText) {
+    langToggleText.textContent = isRtl ? 'EN 🇺🇸' : 'עב 🇮🇱';
+  }
+
+  // Update genre pills
+  document.querySelectorAll('.genre-pill-btn').forEach(btn => {
+    const genre = btn.dataset.genre;
+    const dictGenres = (TRANSLATIONS[currentLanguage] && TRANSLATIONS[currentLanguage].genres) || {};
+    if (dictGenres[genre]) {
+      if (genre === 'spotify') {
+        btn.innerHTML = `<i class="fa-brands fa-spotify"></i> ${dictGenres[genre]}`;
+      } else if (genre === 'apple-music') {
+        btn.innerHTML = `<i class="fa-brands fa-apple"></i> ${dictGenres[genre]}`;
+      } else {
+        btn.textContent = dictGenres[genre];
+      }
+    }
+  });
+
+  // Update search input placeholder
+  const guessInput = document.getElementById('guess-input');
+  if (guessInput) {
+    guessInput.placeholder = t('search_placeholder');
+  }
+
+  // Update skip button
+  if (typeof updateSkipButtonText === 'function') {
+    updateSkipButtonText();
+  }
+
+  // Update game feedback text if idle
+  const feedback = document.getElementById('game-feedback-text');
+  if (feedback && (!gameState || !gameState.isFinished)) {
+    feedback.textContent = t('listen_prompt');
+  }
+
+  // Update stats labels in results modal
+  const lblPlayed = document.querySelector('#stat-played + .stat-lbl');
+  if (lblPlayed) lblPlayed.textContent = t('played');
+  const lblWinrate = document.querySelector('#stat-winrate + .stat-lbl');
+  if (lblWinrate) lblWinrate.textContent = t('win_rate');
+  const lblStreak = document.querySelector('#stat-streak + .stat-lbl');
+  if (lblStreak) lblStreak.textContent = t('streak');
+  const lblMaxstreak = document.querySelector('#stat-maxstreak + .stat-lbl');
+  if (lblMaxstreak) lblMaxstreak.textContent = t('best');
+
+  const distTitle = document.querySelector('.guess-distribution-container h4');
+  if (distTitle) distTitle.textContent = t('guess_distribution');
+
+  // Update Next Song button
+  const nextSongBtn = document.getElementById('btn-next-song');
+  if (nextSongBtn) {
+    nextSongBtn.innerHTML = `${t('next_song')} <i class="fa-solid fa-arrow-${isRtl ? 'left' : 'right'}"></i>`;
+  }
+
+  // Update player name if guest
+  const nameVal = document.getElementById('player-name-val');
+  if (nameVal && (!currentUsername || currentUsername === 'Guest' || currentUsername === 'אנונימי')) {
+    currentUsername = t('guest_name');
+    nameVal.textContent = currentUsername;
+  }
+
+  // Update static elements with data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (key) {
+      el.textContent = t(key);
+    }
+  });
+
+  // Update elements with data-i18n-placeholder
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (key) {
+      el.placeholder = t(key);
+    }
+  });
+
+  // Update language choice buttons in name modal
+  document.querySelectorAll('.lang-choice-btn').forEach(btn => {
+    if (btn.dataset.lang === currentLanguage) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  // Update header stats text (PTS, STREAK)
+  if (typeof updateHeaderStats === 'function') {
+    updateHeaderStats();
+  }
+}
+
 const DEFAULT_ARTWORK_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">' +
   '<rect width="100" height="100" rx="12" fill="#18181b"/>' +

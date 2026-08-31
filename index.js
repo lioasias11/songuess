@@ -5,6 +5,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   loadArtworkCache();
   loadStats();
+  applyLanguage(currentLanguage);
   updateHeaderStats();
   setupEvents();
   setupAutocomplete();
@@ -17,6 +18,32 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupEvents() {
+  // Language Toggle Button in Header
+  const langToggleBtn = document.getElementById('btn-lang-toggle');
+  if (langToggleBtn) {
+    langToggleBtn.addEventListener('click', () => {
+      synth.playClick();
+      const nextLang = (currentLanguage === 'he') ? 'en' : 'he';
+      applyLanguage(nextLang);
+    });
+  }
+
+  // Language choice buttons in Name Setup Modal
+  document.querySelectorAll('.lang-choice-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      synth.playClick();
+      const chosenLang = btn.dataset.lang;
+      applyLanguage(chosenLang);
+    });
+  });
+
+  // Play Anonymously button in Name Setup Modal
+  const playAnonymousBtn = document.getElementById('btn-play-anonymous');
+  if (playAnonymousBtn) {
+    playAnonymousBtn.addEventListener('click', () => {
+      playAnonymously();
+    });
+  }
   // Top Pills Navigation in Game Screen
   document.querySelectorAll('.genre-pill-btn').forEach(pill => {
     pill.addEventListener('click', () => {
