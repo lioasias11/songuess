@@ -170,19 +170,70 @@ function getLocalMatches(query) {
   return matched.slice(0, 15);
 }
 
+function getCleanTrackTitle(title) {
+  if (!title) return '';
+  return title
+    .replace(/\s*[\(\[][^\)\]]*(?:feat\.?|featuring|with|prod\.?|remix|acoustic|live|radio|deluxe|bonus|edit|mix|version|explicit|clean|khea|audio|video|instrumental|cover|orchestral|extended|רמיקס|לייב|הופעה|בהופעה|אקוסטי|אקוסטית|שקטה|גרסה|קאבר|אירוח|מארח|מארחת|מארחים|בהשתתפות|דואט|אודיו|קליפ|רשמי|הפקה|קיסריה|מנורה)[^\)\]]*[\)\]]/gi, '')
+    .replace(/\s*[-–—]\s*(?:feat\.?|featuring|with|prod\.?|remix|acoustic|live|radio|deluxe|bonus|edit|mix|version|explicit|clean|רמיקס|לייב|הופעה|בהופעה|אקוסטי|אקוסטית|שקטה|גרסה|קאבר|אירוח|מארח|מארחת|מארחים|בהשתתפות|דואט|אודיו|קליפ|רשמי|הפקה|קיסריה|מנורה|live[^\-–—]*|prod[^\-–—]*)[^-–—]*$/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getPrimaryArtist(artist) {
+  if (!artist) return '';
+  const parts = artist.split(/,|\bfeat\.?\b|\bft\.?\b|\bfeaturing\b|&|\band\b|\bx\b|\bwith\b|\s+עם\s+|\s+מארח\s+|\s+מארחת\s+|\s+מארחים\s+|\s+בהשתתפות\s+/i);
+  return parts[0].trim();
+}
+
+function getCanonicalArtist(artist) {
+  if (!artist) return '';
+  const primary = getPrimaryArtist(artist);
+  const norm = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(primary) : primary.toLowerCase().trim();
+
+  if (typeof HEBREW_ARTIST_MAP === 'object' && HEBREW_ARTIST_MAP) {
+    for (const [hebKey, aliases] of Object.entries(HEBREW_ARTIST_MAP)) {
+      const normHeb = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(hebKey) : hebKey.toLowerCase().trim();
+      const aliasList = Array.isArray(aliases) ? aliases : [aliases];
+      const normAliases = aliasList.map(a => (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(a) : a.toLowerCase().trim());
+
+      if (norm === normHeb || normAliases.includes(norm) || normHeb.includes(norm) || norm.includes(normHeb) || normAliases.some(a => norm.includes(a) || a.includes(norm))) {
+        return normHeb;
+      }
+    }
+  }
+
+  return norm;
+}
+
+function getSongCanonicalKey(trackName, artistName) {
+  const cleanTitle = getCleanTrackTitle(trackName);
+  const normTitle = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(cleanTitle) : cleanTitle.toLowerCase();
+  const normArtist = getCanonicalArtist(artistName);
+  return `${normTitle}__${normArtist}`;
+}
+
 function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
   const normQuery = normalizeUnicode(query);
   const valAliases = (typeof getArtistAliases === 'function') ? getArtistAliases(query) : [query];
   const normValAliases = valAliases.map(v => normalizeUnicode(v));
 
-  const seen = new Set();
   const list = [];
+  const seenCanonicalKeys = new Map();
 
   function add(item) {
     if (!item || !item.trackName || !item.artistName) return;
-    const key = normalizeSearchStr(item.trackName + ' ' + item.artistName);
-    if (!seen.has(key)) {
-      seen.add(key);
+    const canKey = getSongCanonicalKey(item.trackName, item.artistName);
+
+    if (seenCanonicalKeys.has(canKey)) {
+      const existingIdx = seenCanonicalKeys.get(canKey);
+      const existing = list[existingIdx];
+      const existingHasModifier = /\b(remix|acoustic|live|mix|edit|version|deluxe)\b/i.test(existing.trackName);
+      const itemHasModifier = /\b(remix|acoustic|live|mix|edit|version|deluxe)\b/i.test(item.trackName);
+      if (existingHasModifier && !itemHasModifier) {
+        list[existingIdx] = item;
+      }
+    } else {
+      seenCanonicalKeys.set(canKey, list.length);
       list.push(item);
     }
   }
@@ -199,6 +250,7 @@ function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
     const curTitle = currentSong.title || '';
     const curArtistAliases = (typeof getArtistAliases === 'function') ? getArtistAliases(curArtist) : [curArtist];
     const normCurTitle = normalizeUnicode(curTitle);
+    const curCanonicalKey = getSongCanonicalKey(curTitle, curArtist);
 
     // Exact full title match (user typed the full/exact song name)
     const isExactTitleMatch = (normCurTitle.length >= 2 && (
@@ -223,37 +275,21 @@ function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
       artwork: currentSong.artwork || DEFAULT_ARTWORK_SVG
     };
 
-    const currentKey = normalizeSearchStr(curTitle + ' ' + curArtist);
+    // Remove any duplicate or remix of the current round's song
+    if (seenCanonicalKeys.has(curCanonicalKey)) {
+      const existingIdx = seenCanonicalKeys.get(curCanonicalKey);
+      list.splice(existingIdx, 1);
+      seenCanonicalKeys.clear();
+      list.forEach((it, idx) => seenCanonicalKeys.set(getSongCanonicalKey(it.trackName, it.artistName), idx));
+    }
 
     if (isExactTitleMatch) {
       // User specifically typed the full exact title: show at top
-      if (seen.has(currentKey)) {
-        const existingIdx = list.findIndex(item => normalizeSearchStr(item.trackName + ' ' + item.artistName) === currentKey);
-        if (existingIdx > 0) {
-          const [found] = list.splice(existingIdx, 1);
-          list.unshift(found);
-        }
-      } else {
-        seen.add(currentKey);
-        list.unshift(currentItem);
-      }
-    } else if (isPartialTitleMatch || isArtistMatch) {
+      list.unshift(currentItem);
+    } else if ((isPartialTitleMatch || isArtistMatch) && list.length > 0) {
       // User typed partial title or artist: guarantee inclusion at random position, NEVER always #1
-      // If list has no matches yet (before API fetch completes), do not create a lonely 1-item answer leak
-      if (list.length > 0) {
-        if (seen.has(currentKey)) {
-          const existingIdx = list.findIndex(item => normalizeSearchStr(item.trackName + ' ' + item.artistName) === currentKey);
-          if (existingIdx >= 15) {
-            const [found] = list.splice(existingIdx, 1);
-            const randIdx = Math.floor(Math.random() * Math.min(list.length + 1, 15));
-            list.splice(randIdx, 0, found);
-          }
-        } else {
-          seen.add(currentKey);
-          const randIdx = Math.floor(Math.random() * Math.min(list.length + 1, 15));
-          list.splice(randIdx, 0, currentItem);
-        }
-      }
+      const randIdx = Math.floor(Math.random() * Math.min(list.length + 1, 15));
+      list.splice(randIdx, 0, currentItem);
     }
   }
 
