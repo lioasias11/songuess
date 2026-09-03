@@ -154,6 +154,10 @@ function setupEvents() {
 
   const nameInput = document.getElementById('username-input');
   if (nameInput) {
+    nameInput.addEventListener('input', () => {
+      const msg = document.getElementById('name-validation-msg');
+      if (msg) msg.textContent = '';
+    });
     nameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') saveUsername();
     });

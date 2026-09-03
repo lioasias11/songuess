@@ -113,6 +113,40 @@ async function removeUserFromLeaderboard(username) {
 }
 
 /**
+ * Checks if a username is already taken by another player in Supabase Postgres.
+ * Returns true if taken, false if available.
+ */
+async function isUsernameTakenInSupabase(desiredName, currentName = null) {
+  if (!desiredName) return false;
+  const client = initSupabase();
+  if (!client) return false;
+
+  try {
+    const trimmed = desiredName.trim();
+    // If it is the player's own current name, it's not taken by someone else
+    if (currentName && trimmed.toLowerCase() === currentName.trim().toLowerCase()) {
+      return false;
+    }
+
+    const { data, error } = await client
+      .from('leaderboard')
+      .select('username')
+      .ilike('username', trimmed)
+      .limit(1);
+
+    if (error) {
+      console.warn('[Supabase] Error checking username uniqueness:', error.message);
+      return false;
+    }
+
+    return Boolean(data && data.length > 0);
+  } catch (err) {
+    console.warn('[Supabase] Uniqueness check failed:', err);
+    return false;
+  }
+}
+
+/**
  * Fetches the Top 50 players from Supabase Postgres in real time
  */
 async function fetchLeaderboardFromSupabase() {

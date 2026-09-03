@@ -75,6 +75,8 @@ const TRANSLATIONS = {
     loaded_badge: "{count} tracks",
     no_playlist_loaded: "No playlist loaded",
     validation_min_chars: "Name must be at least 2 characters.",
+    validation_name_taken: "Username is already taken. Please choose another name.",
+    checking_name_btn: "Checking...",
     genres: {
       "white-girl-music": "White Girl Music",
       "pop": "Pop",
@@ -139,6 +141,8 @@ const TRANSLATIONS = {
     loaded_badge: "{count} שירים",
     no_playlist_loaded: "לא נטען פלייליסט",
     validation_min_chars: "השם חייב להכיל לפחות 2 תווים.",
+    validation_name_taken: "שם המשתמש כבר תפוס. אנא בחר שם אחר.",
+    checking_name_btn: "בודק זמינות...",
     genres: {
       "white-girl-music": "להיטי פופ מוכרים",
       "pop": "פופ",

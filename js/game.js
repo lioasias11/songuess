@@ -778,15 +778,44 @@ function playAnonymously() {
   }
 }
 
-function saveUsername() {
+async function saveUsername() {
   const input = document.getElementById('username-input');
   const msg = document.getElementById('name-validation-msg');
+  const submitBtn = document.getElementById('btn-submit-name');
   if (!input) return;
   const val = (input.value || '').trim();
 
   if (val.length < 2) {
     if (msg) msg.textContent = t('validation_min_chars');
     return;
+  }
+
+  // Check if username is already taken by another player in the database
+  if (typeof isUsernameTakenInSupabase === 'function') {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('checking_name_btn') || 'Checking...'}`;
+    }
+
+    try {
+      const isTaken = await isUsernameTakenInSupabase(val, currentUsername);
+      if (isTaken) {
+        if (msg) msg.textContent = t('validation_name_taken') || 'Username is already taken. Please choose another name.';
+        if (input) input.focus();
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<span data-i18n="start_playing_btn">${t('start_playing_btn') || 'Start Playing'}</span> <i class="fa-solid fa-play"></i>`;
+        }
+        return;
+      }
+    } catch (e) {
+      console.warn('Error checking username uniqueness:', e);
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span data-i18n="start_playing_btn">${t('start_playing_btn') || 'Start Playing'}</span> <i class="fa-solid fa-play"></i>`;
+      }
+    }
   }
 
   const previousName = currentUsername;
