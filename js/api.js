@@ -61,33 +61,44 @@ function scoreTrackCandidate(item, targetTitle, targetArtist) {
   const normTargetTitle = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(targetTitle) : targetTitle.toLowerCase();
   const normItemArtist = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(item.artistName || '') : (item.artistName || '').toLowerCase();
   const normTargetArtist = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(targetArtist || '') : (targetArtist || '').toLowerCase();
+  const normCollection = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(item.collectionName || '') : (item.collectionName || '').toLowerCase();
 
-  // 1. Exact title match
+  // 1. Title match
+  let hasTitleMatch = false;
   if (normItemTitle === normTargetTitle) {
-    score += 80;
+    score += 100;
+    hasTitleMatch = true;
   } else if (normItemTitle.startsWith(normTargetTitle) || normTargetTitle.startsWith(normItemTitle)) {
-    score += 40;
-  } else if (normItemTitle.includes(normTargetTitle)) {
-    score += 20;
+    score += 50;
+    hasTitleMatch = true;
+  } else if (normItemTitle.includes(normTargetTitle) || normTargetTitle.includes(normItemTitle)) {
+    score += 30;
+    hasTitleMatch = true;
   }
 
-  // 2. Penalize unwanted remixes, acoustic, live, instrumental, cover, slowed/sped up when target does not ask for it
-  const modifierRegex = /\b(remix|acoustic|live|instrumental|slowed|sped up|reverb|edit|tribute|cover|session|demo|karaoke|mix)\b/i;
-  const itemHasModifier = modifierRegex.test(item.trackName);
+  // If the song title doesn't match at all, penalize heavily so different songs by the same artist are rejected
+  if (!hasTitleMatch) {
+    score -= 150;
+  }
+
+  // 2. Penalize unwanted remixes, acoustic, live, instrumental, cover, edm, sound-alikes when target does not ask for it
+  const modifierRegex = /\b(remix|acoustic|live|instrumental|slowed|sped up|reverb|edit|tribute|cover|session|demo|karaoke|mix|edm|bass boosted|sound-alike|soundalike|piano version|radio version)\b/i;
+  const itemHasModifier = modifierRegex.test(item.trackName) || modifierRegex.test(normCollection);
   const targetHasModifier = modifierRegex.test(targetTitle);
 
   if (itemHasModifier && !targetHasModifier) {
-    score -= 70;
+    score -= 100;
   }
 
-  // 3. Artist matching
+  // 3. Strict Artist matching
   if (normTargetArtist) {
     if (normItemArtist === normTargetArtist) {
-      score += 50;
+      score += 80;
     } else if (normItemArtist.includes(normTargetArtist) || normTargetArtist.includes(normItemArtist)) {
-      score += 30;
+      score += 40;
     } else {
-      score -= 30;
+      // Completely different artist (e.g. "Farru Co" vs "Farruko") -> severe penalty
+      score -= 100;
     }
   }
 
@@ -140,7 +151,7 @@ async function fetchTrackData(query) {
   
   for (const q of aliases) {
     try {
-      const itunesUrl = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=song&limit=6&media=music';
+      const itunesUrl = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=song&limit=10&media=music';
       const data = await fetchJsonp(itunesUrl, 3000);
       if (data && data.results && data.results.length > 0) {
         const candidates = data.results.filter(r => r.previewUrl);
@@ -149,8 +160,8 @@ async function fetchTrackData(query) {
           const best = candidates[0];
           const bestScore = scoreTrackCandidate(best, targetTitle, targetArtist);
 
-          // Only accept candidate if it has a reasonable score (not a completely different song by the artist)
-          if (bestScore >= 40) {
+          // Only accept candidate if it has a strong score (reject knockoff covers / sound-alikes)
+          if (bestScore >= 100) {
             let artwork = best.artworkUrl100 || '';
             artwork = artwork.replace('100x100bb', '600x600bb');
 
@@ -167,23 +178,23 @@ async function fetchTrackData(query) {
     } catch (e) { }
   }
 
-  // 3. Fallback to Deezer API for preview audio
+  // 3. Fallback to Deezer API for preview audio (great for original Latin, Hebrew & international tracks)
   for (const q of aliases) {
     try {
-      const deezerUrl = 'https://api.deezer.com/search?q=' + encodeURIComponent(q) + '&limit=5&output=jsonp';
+      const deezerUrl = 'https://api.deezer.com/search?q=' + encodeURIComponent(q) + '&limit=8&output=jsonp';
       const data = await fetchJsonp(deezerUrl, 3000);
       if (data && data.data && data.data.length > 0) {
         const candidates = data.data.filter(r => r.preview);
         if (candidates.length > 0) {
           candidates.sort((a, b) => {
-            const itemA = { trackName: a.title, artistName: (a.artist && a.artist.name) || '' };
-            const itemB = { trackName: b.title, artistName: (b.artist && b.artist.name) || '' };
+            const itemA = { trackName: a.title, artistName: (a.artist && a.artist.name) || '', collectionName: (a.album && a.album.title) || '' };
+            const itemB = { trackName: b.title, artistName: (b.artist && b.artist.name) || '', collectionName: (b.album && b.album.title) || '' };
             return scoreTrackCandidate(itemB, targetTitle, targetArtist) - scoreTrackCandidate(itemA, targetTitle, targetArtist);
           });
           const best = candidates[0];
-          const bestScore = scoreTrackCandidate({ trackName: best.title, artistName: (best.artist && best.artist.name) || '' }, targetTitle, targetArtist);
+          const bestScore = scoreTrackCandidate({ trackName: best.title, artistName: (best.artist && best.artist.name) || '', collectionName: (best.album && best.album.title) || '' }, targetTitle, targetArtist);
           
-          if (bestScore >= 40) {
+          if (bestScore >= 100) {
             return {
               previewUrl: best.preview,
               artwork: (best.album && (best.album.cover_big || best.album.cover_medium)) || DEFAULT_ARTWORK_SVG,
@@ -750,6 +761,20 @@ async function fetchApplePlaylistTracks(rawUrl) {
       if (!seenTracks.has(key)) {
         seenTracks.add(key);
         tracks.push(name);
+
+        if (s.previewUrl) {
+          const trackObj = {
+            title: s.trackName,
+            artist: s.artistName,
+            previewUrl: s.previewUrl,
+            artwork: (s.artworkUrl100 || '').replace('100x100bb', '600x600bb') || DEFAULT_ARTWORK_SVG,
+            album: s.collectionName || title
+          };
+          storePreloadedTrackData(name, trackObj);
+          storePreloadedTrackData(s.trackName, trackObj);
+          storePreloadedTrackData(`${s.trackName} ${s.artistName}`, trackObj);
+          storePreloadedTrackData(`${s.artistName} ${s.trackName}`, trackObj);
+        }
       }
     }
 

@@ -120,7 +120,9 @@ function playCurrentSnippet() {
   synth.init();
   stopAudio();
 
-  const maxAllowedDuration = DURATIONS[gameState.attemptsUsed] || 0.1;
+  const uiDuration = DURATIONS[gameState.attemptsUsed] || 0.1;
+  // Play 0.2s of audio for the first step (0.1s) for audio clarity, while keeping 0.1s displayed in the UI
+  const actualAudioDuration = (uiDuration === 0.1) ? 0.2 : uiDuration;
   const playBtn = document.getElementById('btn-play');
   const playIcon = document.getElementById('play-btn-icon');
   const durationLabel = document.getElementById('snippet-duration');
@@ -150,18 +152,25 @@ function playCurrentSnippet() {
         }
       }
 
-      const elapsed = audioStarted ? Math.min((now - startTime) / 1000, maxAllowedDuration) : 0;
+      const elapsed = audioStarted ? Math.min((now - startTime) / 1000, actualAudioDuration) : 0;
       
-      updateCapsuleFill(elapsed, maxAllowedDuration, false);
+      // Scale visual capsule fill to the UI duration boundary (0.1s)
+      const visualElapsed = (actualAudioDuration !== uiDuration)
+        ? (elapsed / actualAudioDuration) * uiDuration
+        : elapsed;
+
+      updateCapsuleFill(visualElapsed, uiDuration, false);
       if (durationLabel) {
-        durationLabel.textContent = elapsed.toFixed(1) + 's';
+        durationLabel.textContent = (actualAudioDuration !== uiDuration)
+          ? uiDuration.toFixed(1) + 's'
+          : elapsed.toFixed(1) + 's';
       }
 
-      if (elapsed >= maxAllowedDuration || audio.ended) {
+      if (elapsed >= actualAudioDuration || audio.ended) {
         // Lock visually to the exact target segment boundary before stopping
-        updateCapsuleFill(maxAllowedDuration, maxAllowedDuration, false);
+        updateCapsuleFill(uiDuration, uiDuration, false);
         if (durationLabel) {
-          durationLabel.textContent = maxAllowedDuration.toFixed(1) + 's';
+          durationLabel.textContent = uiDuration.toFixed(1) + 's';
         }
         stopAudio();
         return;

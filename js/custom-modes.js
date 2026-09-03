@@ -56,9 +56,14 @@ function updateCustomModalPreview() {
 
   if (listEl) {
     if (tracks.length === 0) {
-      listEl.innerHTML = '<div style="color: var(--text-muted); font-style: italic; padding: 4px 0;">No tracks loaded yet. Import a link, search an album, or choose a featured preset above.</div>';
+      listEl.style.display = 'none';
+      listEl.innerHTML = '';
     } else {
-      listEl.innerHTML = tracks.map((t, idx) => '<div class="custom-track-item"><strong>' + (idx + 1) + '.</strong> ' + t + '</div>').join('');
+      listEl.style.display = 'flex';
+      listEl.innerHTML = tracks.map((t, idx) => {
+        const str = typeof t === 'string' ? t : ((t.artistName || t.artist || '') + ' - ' + (t.trackName || t.title || ''));
+        return '<div class="custom-track-item"><strong>' + (idx + 1) + '.</strong> ' + str + '</div>';
+      }).join('');
     }
   }
 
@@ -310,9 +315,14 @@ function updateAppleModalPreview() {
 
   if (listEl) {
     if (tracks.length === 0) {
-      listEl.innerHTML = '<div style="color: var(--text-muted); font-style: italic; padding: 4px 0;">No tracks loaded yet. Import an Apple Music link, search an album, or pick an Apple Hits preset.</div>';
+      listEl.style.display = 'none';
+      listEl.innerHTML = '';
     } else {
-      listEl.innerHTML = tracks.map((t, idx) => '<div class="custom-track-item"><strong>' + (idx + 1) + '.</strong> ' + t + '</div>').join('');
+      listEl.style.display = 'flex';
+      listEl.innerHTML = tracks.map((t, idx) => {
+        const str = typeof t === 'string' ? t : ((t.artistName || t.artist || '') + ' - ' + (t.trackName || t.title || ''));
+        return '<div class="custom-track-item"><strong>' + (idx + 1) + '.</strong> ' + str + '</div>';
+      }).join('');
     }
   }
 

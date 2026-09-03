@@ -1,4 +1,19 @@
+# Environment & Secret Keys
 .env
+.env.*
+!.env.example
+env.js
+config.js
+
+# Dependencies
+node_modules/
+
+# OS and System Files
 .DS_Store
 Thumbs.db
-node_modules/
+desktop.ini
+
+# Logs & Temporary Files
+*.log
+.tempmediaStorage/
+.system_generated/

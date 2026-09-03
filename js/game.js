@@ -569,6 +569,9 @@ function endGame(hasWon) {
 
   saveStats();
   updateHeaderStats();
+  if (typeof syncUserScoreToSupabase === 'function') {
+    syncUserScoreToSupabase();
+  }
 
   const modalTitle = document.getElementById('modal-title');
   const modalSub = document.getElementById('modal-subtitle');
@@ -658,15 +661,37 @@ function showStatsModal() {
   showResultModal();
 }
 
-function showLeaderboardModal() {
+async function showLeaderboardModal() {
   const modal = document.getElementById('leaderboard-modal');
   if (!modal) return;
 
-  const container = document.getElementById('leaderboard-entries-container');
-  if (container) {
-    container.innerHTML = '';
+  renderLeaderboardRows(null);
+  modal.classList.add('active');
 
-    const mockUsers = [
+  if (typeof fetchLeaderboardFromSupabase === 'function' && typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) {
+    const liveUsers = await fetchLeaderboardFromSupabase();
+    if (liveUsers && liveUsers.length > 0) {
+      renderLeaderboardRows(liveUsers);
+    }
+    if (typeof subscribeToLeaderboardRealtime === 'function') {
+      subscribeToLeaderboardRealtime(async () => {
+        const updated = await fetchLeaderboardFromSupabase();
+        if (updated && updated.length > 0) {
+          renderLeaderboardRows(updated);
+        }
+      });
+    }
+  }
+}
+
+function renderLeaderboardRows(users) {
+  const container = document.getElementById('leaderboard-entries-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  let list = users;
+  if (!list || list.length === 0) {
+    list = [
       { name: "DJ Spark", score: 14500, winRate: "88%", streak: 12 },
       { name: "BeatMaster", score: 12200, winRate: "79%", streak: 9 },
       { name: "SynthWave99", score: 9800, winRate: "72%", streak: 6 },
@@ -674,12 +699,12 @@ function showLeaderboardModal() {
       { name: "MelodyQueen", score: 6900, winRate: "58%", streak: 4 }
     ];
 
-    if (currentUsername) {
+    if (currentUsername && currentUsername !== 'Guest' && currentUsername !== 'אנונימי') {
       const userScore = stats.totalScore || 0;
       const userWinRate = stats.played > 0 ? Math.round((stats.wins / stats.played) * 100) + '%' : '0%';
       const userStreak = stats.maxStreak || 0;
 
-      mockUsers.push({
+      list.push({
         name: currentUsername + " (You)",
         score: userScore,
         winRate: userWinRate,
@@ -687,36 +712,39 @@ function showLeaderboardModal() {
         isCurrent: true
       });
     }
-
-    mockUsers.sort((a, b) => b.score - a.score);
-
-    mockUsers.forEach((u, idx) => {
-      const row = document.createElement('div');
-      row.className = 'leaderboard-row' + (u.isCurrent ? ' current-user' : '');
-
-      let rankBadge = `#${idx + 1}`;
-      if (idx === 0) rankBadge = '🥇';
-      if (idx === 1) rankBadge = '🥈';
-      if (idx === 2) rankBadge = '🥉';
-
-      row.innerHTML = `
-        <span class="leaderboard-rank">${rankBadge}</span>
-        <div class="leaderboard-player-info">
-          <strong>${u.name}</strong>
-          <span>${u.winRate} Win Rate • ${u.streak} Streak</span>
-        </div>
-        <span class="leaderboard-score">${u.score.toLocaleString()} PTS</span>
-      `;
-      container.appendChild(row);
-    });
   }
 
-  modal.classList.add('active');
+  list.sort((a, b) => b.score - a.score);
+
+  list.forEach((u, idx) => {
+    const row = document.createElement('div');
+    row.className = 'leaderboard-row' + (u.isCurrent ? ' current-user' : '');
+
+    let rankBadge = `#${idx + 1}`;
+    if (idx === 0) rankBadge = '🥇';
+    if (idx === 1) rankBadge = '🥈';
+    if (idx === 2) rankBadge = '🥉';
+
+    const displayName = u.isCurrent && !u.name.includes('(You)') ? `${u.name} (You)` : u.name;
+
+    row.innerHTML = `
+      <span class="leaderboard-rank">${rankBadge}</span>
+      <div class="leaderboard-player-info">
+        <strong>${displayName}</strong>
+        <span>${u.winRate} Win Rate • ${u.streak} Streak</span>
+      </div>
+      <span class="leaderboard-score">${u.score.toLocaleString()} PTS</span>
+    `;
+    container.appendChild(row);
+  });
 }
 
 function hideLeaderboardModal() {
   const modal = document.getElementById('leaderboard-modal');
   if (modal) modal.classList.remove('active');
+  if (typeof unsubscribeLeaderboardRealtime === 'function') {
+    unsubscribeLeaderboardRealtime();
+  }
 }
 
 function showNameSetupModal(isRequired = false) {
@@ -733,12 +761,17 @@ function hideNameSetupModal() {
 }
 
 function playAnonymously() {
+  const previousName = currentUsername;
   currentUsername = t('guest_name');
   localStorage.setItem('songuess_username', currentUsername);
 
   updateHeaderStats();
   hideNameSetupModal();
   synth.playWin();
+
+  if (previousName && typeof removeUserFromLeaderboard === 'function') {
+    removeUserFromLeaderboard(previousName);
+  }
 
   if (!gameState.currentSong) {
     startNewGame('white-girl-music');
@@ -756,12 +789,17 @@ function saveUsername() {
     return;
   }
 
+  const previousName = currentUsername;
   currentUsername = val;
   localStorage.setItem('songuess_username', val);
 
   updateHeaderStats();
   hideNameSetupModal();
   synth.playWin();
+
+  if (typeof syncUserScoreToSupabase === 'function') {
+    syncUserScoreToSupabase(previousName);
+  }
 
   if (!gameState.currentSong) {
     startNewGame('white-girl-music');

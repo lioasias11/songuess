@@ -24,6 +24,23 @@
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: #333333 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #555555;
 }
 
 html, body {
@@ -1498,6 +1515,8 @@ html, body {
 .custom-tracks-list {
   max-height: 120px;
   overflow-y: auto;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -1506,6 +1525,12 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.custom-tracks-list::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .custom-track-item {
