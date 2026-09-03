@@ -26,12 +26,10 @@ jobs:
 
       - name: Generate env.js from GitHub Variables
         run: |
-          cat << 'EOF' > env.js
-          window.__ENV__ = {
-            SUPABASE_URL: '${{ vars.SUPABASE_URL || secrets.SUPABASE_URL }}',
-            SUPABASE_ANON_KEY: '${{ vars.SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}'
-          };
-          EOF
+          echo "window.__ENV__ = {" > env.js
+          echo "  SUPABASE_URL: '${{ vars.SUPABASE_URL || secrets.SUPABASE_URL }}'," >> env.js
+          echo "  SUPABASE_ANON_KEY: '${{ vars.SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}'" >> env.js
+          echo "};" >> env.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
