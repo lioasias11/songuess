@@ -315,31 +315,36 @@ const HEBREW_ARTIST_MAP = {
 
 function getArtistAliases(artistOrQuery) {
   const norm = normalizeUnicode(artistOrQuery);
+  if (!norm || norm.length < 3) return [artistOrQuery];
   const aliases = [artistOrQuery];
 
   for (const [key, valList] of Object.entries(HEBREW_ARTIST_MAP)) {
     const normKey = normalizeUnicode(key);
     const list = Array.isArray(valList) ? valList : [valList];
 
-    if (norm.includes(normKey) || normKey.includes(norm)) {
+    const matchesKey = (norm === normKey) || norm.includes(normKey) || (norm.length >= 4 && normKey.startsWith(norm));
+    if (matchesKey) {
       list.forEach(v => aliases.push(v));
       aliases.push(key);
     }
     for (const v of list) {
       const normV = normalizeUnicode(v);
-      if (norm.includes(normV) || normV.includes(norm)) {
+      const matchesV = (norm === normV) || norm.includes(normV) || (norm.length >= 4 && normV.startsWith(norm));
+      if (matchesV) {
         aliases.push(key);
         list.forEach(item => aliases.push(item));
       }
     }
   }
-  return [...new Set(aliases)];
+  return [...new Set(aliases)].slice(0, 3);
 }
+
+const ITUNES_SEARCH_CACHE = new Map();
 
 async function searchDeezer(query) {
   try {
-    const url = 'https://api.deezer.com/search?q=' + encodeURIComponent(query) + '&limit=25&output=jsonp';
-    const data = await fetchJsonp(url, 3000);
+    const url = 'https://api.deezer.com/search?q=' + encodeURIComponent(query) + '&limit=20&output=jsonp';
+    const data = await fetchJsonp(url, 1500);
     if (data && data.data && data.data.length > 0) {
       return data.data
         .filter(r => r.title && !/^\d{1,3}$/.test(r.title.trim()))
@@ -354,6 +359,13 @@ async function searchDeezer(query) {
 }
 
 async function searchItunes(query) {
+  if (!query || query.trim().length === 0) return [];
+  const cleanQ = query.trim();
+  const cacheKey = cleanQ.toLowerCase();
+  if (ITUNES_SEARCH_CACHE.has(cacheKey)) {
+    return ITUNES_SEARCH_CACHE.get(cacheKey);
+  }
+
   const allResults = [];
   const seen = new Set();
 
@@ -361,7 +373,7 @@ async function searchItunes(query) {
     if (!list) return;
     for (const item of list) {
       if (!item.trackName || !item.artistName) continue;
-      if (/^\d{1,3}$/.test(item.trackName.trim())) continue; // filter untitled numbers like 06, 03
+      if (/^\d{1,3}$/.test(item.trackName.trim())) continue;
       const key = normalizeSearchStr(item.trackName + ' ' + item.artistName);
       if (!seen.has(key)) {
         seen.add(key);
@@ -370,15 +382,15 @@ async function searchItunes(query) {
     }
   }
 
-  const aliases = getArtistAliases(query);
+  const aliases = getArtistAliases(cleanQ);
   const promises = [];
 
-  // Primary search in iTunes
+  // 1. Primary fast iTunes search
   promises.push(
     (async () => {
       try {
-        const url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(query) + '&entity=song&limit=30&media=music';
-        const data = await fetchJsonp(url, 2500);
+        const url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(cleanQ) + '&entity=song&limit=30&media=music';
+        const data = await fetchJsonp(url, 1600);
         if (data && data.results) {
           return data.results.map(r => ({
             trackName: r.trackName,
@@ -391,14 +403,15 @@ async function searchItunes(query) {
     })()
   );
 
-  // Search transliterated aliases in iTunes (e.g. Itay Levi for itay levy)
-  for (const alias of aliases) {
-    if (alias !== query) {
+  // 2. If a specific transliterated Hebrew/English alias exists, query at most 1 alternate alias
+  if (aliases.length > 1) {
+    const altAlias = aliases.find(a => a.toLowerCase() !== cleanQ.toLowerCase());
+    if (altAlias) {
       promises.push(
         (async () => {
           try {
-            const url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(alias) + '&entity=song&limit=30&media=music';
-            const data = await fetchJsonp(url, 2500);
+            const url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(altAlias) + '&entity=song&limit=20&media=music';
+            const data = await fetchJsonp(url, 1600);
             if (data && data.results) {
               return data.results.map(r => ({
                 trackName: r.trackName,
@@ -413,25 +426,40 @@ async function searchItunes(query) {
     }
   }
 
-  // Deezer native multilingual search for original query and all aliases
-  for (const alias of aliases) {
-    promises.push(searchDeezer(alias));
-  }
+  // 3. Native multilingual Deezer search for original query
+  promises.push(searchDeezer(cleanQ));
 
   const resultArrays = await Promise.all(promises);
   resultArrays.forEach(arr => addResults(arr));
 
-  // Prioritize tracks that match the searched artist
-  const normAliases = aliases.map(normalizeUnicode);
+  // Prioritize tracks that match the searched query
+  const normQuery = normalizeUnicode(cleanQ);
   allResults.sort((a, b) => {
-    const aMatch = normAliases.some(alias => alias.length >= 2 && (normalizeUnicode(a.artistName).includes(alias) || alias.includes(normalizeUnicode(a.artistName))));
-    const bMatch = normAliases.some(alias => alias.length >= 2 && (normalizeUnicode(b.artistName).includes(alias) || alias.includes(normalizeUnicode(b.artistName))));
-    if (aMatch && !bMatch) return -1;
-    if (!aMatch && bMatch) return 1;
+    const aNormArtist = normalizeUnicode(a.artistName);
+    const bNormArtist = normalizeUnicode(b.artistName);
+    const aNormTitle = normalizeUnicode(a.trackName);
+    const bNormTitle = normalizeUnicode(b.trackName);
+
+    const aExact = aNormTitle === normQuery || aNormArtist === normQuery;
+    const bExact = bNormTitle === normQuery || bNormArtist === normQuery;
+    if (aExact && !bExact) return -1;
+    if (!aExact && bExact) return 1;
+
+    const aStart = aNormTitle.startsWith(normQuery) || aNormArtist.startsWith(normQuery);
+    const bStart = bNormTitle.startsWith(normQuery) || bNormArtist.startsWith(normQuery);
+    if (aStart && !bStart) return -1;
+    if (!aStart && bStart) return 1;
+
     return 0;
   });
 
-  return allResults;
+  const finalResults = allResults.slice(0, 30);
+  if (ITUNES_SEARCH_CACHE.size > 120) {
+    const firstKey = ITUNES_SEARCH_CACHE.keys().next().value;
+    ITUNES_SEARCH_CACHE.delete(firstKey);
+  }
+  ITUNES_SEARCH_CACHE.set(cacheKey, finalResults);
+  return finalResults;
 }
 
 async function fetchAlbumTracksFromItunes(albumQuery) {

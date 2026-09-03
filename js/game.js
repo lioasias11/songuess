@@ -287,7 +287,7 @@ function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
       // User specifically typed the full exact title: show at top
       list.unshift(currentItem);
     } else if ((isPartialTitleMatch || isArtistMatch) && list.length > 0) {
-      // User typed partial title or artist: guarantee inclusion at random position, NEVER always #1
+      // User typed partial title or artist: place at a completely random position in the list
       const randIdx = Math.floor(Math.random() * Math.min(list.length + 1, 15));
       list.splice(randIdx, 0, currentItem);
     }
@@ -316,21 +316,17 @@ function setupAutocomplete() {
       return;
     }
 
-    // Only render immediate local suggestions if we have a substantial list of local matches (>= 3)
-    // to avoid flashing a lonely 1-item answer before API results arrive
-    const localMatches = getLocalMatches(val);
-    if (localMatches.length >= 3) {
-      const initialMerged = mergeSuggestions(localMatches, [], val, null);
-      renderAutocompleteDropdown(initialMerged);
-    }
-
     autocompleteTimeout = setTimeout(async () => {
-      if (input.value.trim() !== val) return;
-      const apiMatches = await searchItunes(val);
-      if (input.value.trim() !== val) return;
-      const finalMerged = mergeSuggestions(localMatches, apiMatches, val, gameState.currentSong);
+      const searchVal = input.value.trim();
+      if (!searchVal || searchVal !== val) return;
+
+      const localMatches = getLocalMatches(searchVal);
+      const apiMatches = await searchItunes(searchVal);
+      if (input.value.trim() !== searchVal) return;
+
+      const finalMerged = mergeSuggestions(localMatches, apiMatches, searchVal, gameState.currentSong);
       renderAutocompleteDropdown(finalMerged);
-    }, 120);
+    }, 90);
   });
 
   input.addEventListener('keydown', (e) => {
@@ -406,13 +402,34 @@ function renderAutocompleteDropdown(results) {
   results.forEach((item, index) => {
     const el = document.createElement('div');
     el.className = 'suggestion-item';
-    el.innerHTML = `
-      <img src="${item.artwork || DEFAULT_ARTWORK_SVG}" alt="Cover" class="suggestion-artwork" />
-      <div class="suggestion-info">
-        <span class="suggestion-title">${item.trackName}</span>
-        <span class="suggestion-artist">${item.artistName}</span>
-      </div>
-    `;
+
+    const img = document.createElement('img');
+    img.className = 'suggestion-artwork';
+    img.src = item.artwork || DEFAULT_ARTWORK_SVG;
+    img.alt = 'Cover';
+
+    const info = document.createElement('div');
+    info.className = 'suggestion-info';
+
+    const titleBox = document.createElement('div');
+    titleBox.className = 'suggestion-marquee-box';
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'suggestion-title marquee-content';
+    titleSpan.textContent = item.trackName;
+    titleBox.appendChild(titleSpan);
+
+    const artistBox = document.createElement('div');
+    artistBox.className = 'suggestion-marquee-box';
+    const artistSpan = document.createElement('span');
+    artistSpan.className = 'suggestion-artist marquee-content';
+    artistSpan.textContent = item.artistName;
+    artistBox.appendChild(artistSpan);
+
+    info.appendChild(titleBox);
+    info.appendChild(artistBox);
+
+    el.appendChild(img);
+    el.appendChild(info);
 
     el.addEventListener('click', () => {
       const formatted = `${item.artistName} - ${item.trackName}`;
@@ -428,6 +445,23 @@ function renderAutocompleteDropdown(results) {
   });
 
   dropdown.style.display = 'block';
+
+  // Apply Spotify-style slow shifting marquee on long song and artist names
+  requestAnimationFrame(() => {
+    dropdown.querySelectorAll('.suggestion-marquee-box').forEach(box => {
+      const content = box.querySelector('.marquee-content');
+      if (!content) return;
+      const overflow = content.scrollWidth - box.clientWidth;
+      if (overflow > 4) {
+        content.classList.add('is-overflowing');
+        content.style.setProperty('--marquee-shift', `${overflow + 8}px`);
+        const duration = Math.min(10, Math.max(3.5, (overflow / 22) + 2));
+        content.style.setProperty('--marquee-duration', `${duration.toFixed(1)}s`);
+      } else {
+        content.classList.remove('is-overflowing');
+      }
+    });
+  });
 
   results.forEach(async (item, index) => {
     if (!item.artwork || item.artwork === DEFAULT_ARTWORK_SVG) {
