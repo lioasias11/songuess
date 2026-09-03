@@ -71,19 +71,38 @@ async function syncUserScoreToSupabase(oldUsername = null) {
   if (!client) return;
 
   try {
-    // If the user changed their name, remove the old username record so no duplicates exist
-    if (oldUsername && oldUsername !== currentUsername && oldUsername !== 'Guest' && oldUsername !== 'אנונימי') {
-      try {
-        await client.from('leaderboard').delete().eq('username', oldUsername);
-      } catch (e) { }
-    }
-
     const userScore = stats.totalScore || 0;
     const userStreak = stats.currentStreak || 0;
     const maxStreak = stats.maxStreak || 0;
     const wins = stats.wins || 0;
     const played = stats.played || 0;
 
+    // 1. If user renamed their username, UPDATE the existing row in place so NO duplicate row is created
+    if (oldUsername && oldUsername !== currentUsername && oldUsername !== 'Guest' && oldUsername !== 'אנונימי') {
+      try {
+        const { data, error } = await client
+          .from('leaderboard')
+          .update({
+            username: currentUsername,
+            score: userScore,
+            streak: maxStreak > userStreak ? maxStreak : userStreak,
+            wins: wins,
+            played: played,
+            updated_at: new Date().toISOString()
+          })
+          .eq('username', oldUsername)
+          .select();
+
+        // If the existing row was updated, we're done (no duplicate created)
+        if (!error && data && data.length > 0) {
+          return;
+        }
+      } catch (e) {
+        console.warn('[Supabase] In-place rename failed, falling back to upsert:', e);
+      }
+    }
+
+    // 2. Otherwise (new player or row didn't exist), upsert by username
     const { error } = await client
       .from('leaderboard')
       .upsert({
