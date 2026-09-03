@@ -665,6 +665,16 @@ async function showLeaderboardModal() {
   const modal = document.getElementById('leaderboard-modal');
   if (!modal) return;
 
+  // Ensure modal text reflects current language
+  const titleEl = modal.querySelector('.modal-header h2');
+  if (titleEl) titleEl.textContent = t('leaderboard_title');
+  const subEl = modal.querySelector('.modal-header .modal-subtitle');
+  if (subEl) subEl.textContent = t('leaderboard_sub');
+  const editBtn = document.getElementById('btn-switch-profile');
+  if (editBtn) editBtn.innerHTML = `<i class="fa-solid fa-user-pen"></i> ${t('edit_switch_name')}`;
+  const closeBtn = document.getElementById('btn-close-leaderboard-bottom');
+  if (closeBtn) closeBtn.textContent = t('close');
+
   renderLeaderboardRows(null);
   modal.classList.add('active');
 
@@ -689,6 +699,11 @@ function renderLeaderboardRows(users) {
   if (!container) return;
   container.innerHTML = '';
 
+  const youSuffix = t('leaderboard_you') || '(You)';
+  const winRateLabel = t('win_rate_label') || 'Win Rate';
+  const streakLabel = t('streak_label') || 'Streak';
+  const ptsLabel = t('pts_label') || 'PTS';
+
   let list = users;
   if (!list || list.length === 0) {
     list = [
@@ -705,7 +720,7 @@ function renderLeaderboardRows(users) {
       const userStreak = stats.maxStreak || 0;
 
       list.push({
-        name: currentUsername + " (You)",
+        name: currentUsername,
         score: userScore,
         winRate: userWinRate,
         streak: userStreak,
@@ -716,24 +731,39 @@ function renderLeaderboardRows(users) {
 
   list.sort((a, b) => b.score - a.score);
 
+  const isHe = (typeof currentLanguage !== 'undefined' && currentLanguage === 'he');
+
   list.forEach((u, idx) => {
     const row = document.createElement('div');
-    row.className = 'leaderboard-row' + (u.isCurrent ? ' current-user' : '');
+    row.className = 'leaderboard-item' + (u.isCurrent ? ' current-user' : '');
 
     let rankBadge = `#${idx + 1}`;
     if (idx === 0) rankBadge = '🥇';
     if (idx === 1) rankBadge = '🥈';
     if (idx === 2) rankBadge = '🥉';
 
-    const displayName = u.isCurrent && !u.name.includes('(You)') ? `${u.name} (You)` : u.name;
+    let displayName = u.name;
+    if (u.isCurrent) {
+      const cleanName = u.name.replace(/\s*\((You|את\/ה)\)/gi, '').trim();
+      displayName = `${cleanName} ${youSuffix}`;
+    }
+
+    const statsSummary = isHe
+      ? `אחוזי ניצחון: <span dir="ltr">${u.winRate}</span> • רצף: ${u.streak}`
+      : `${u.winRate} Win Rate • Streak: ${u.streak}`;
 
     row.innerHTML = `
-      <span class="leaderboard-rank">${rankBadge}</span>
-      <div class="leaderboard-player-info">
-        <strong>${displayName}</strong>
-        <span>${u.winRate} Win Rate • ${u.streak} Streak</span>
+      <div class="leaderboard-left">
+        <span class="leaderboard-rank rank-${idx + 1}">${rankBadge}</span>
+        <div class="leaderboard-details">
+          <div class="leaderboard-name">${displayName}</div>
+          <div class="leaderboard-stats-summary">${statsSummary}</div>
+        </div>
       </div>
-      <span class="leaderboard-score">${u.score.toLocaleString()} PTS</span>
+      <div class="leaderboard-right">
+        <span class="leaderboard-score">${u.score.toLocaleString()}</span>
+        <span class="leaderboard-stats-summary" style="color: var(--green); font-weight: 600;">${ptsLabel}</span>
+      </div>
     `;
     container.appendChild(row);
   });

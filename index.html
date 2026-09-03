@@ -17,10 +17,10 @@
   <meta name="apple-mobile-web-app-title" content="SONGUESS">
   <meta name="theme-color" content="#121212">
 
-  <!-- Modern Clean Typography: Plus Jakarta Sans -->
+  <!-- Modern Clean Typography: Plus Jakarta Sans & Heebo for Hebrew -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
 
   <!-- FontAwesome Icons -->
@@ -247,8 +247,8 @@
       <button class="modal-close-btn" id="btn-close-leaderboard">&times;</button>
 
       <div class="modal-header">
-        <h2>SONGUESS LEADERBOARD</h2>
-        <p class="modal-subtitle">Top players ranked by total points</p>
+        <h2 data-i18n="leaderboard_title">SONGUESS LEADERBOARD</h2>
+        <p class="modal-subtitle" data-i18n="leaderboard_sub">Top players ranked by total points</p>
       </div>
 
       <div class="leaderboard-list" id="leaderboard-entries-container">
@@ -256,10 +256,8 @@
       </div>
 
       <div class="modal-actions" style="margin-top: 1.2rem; gap: 10px; flex-wrap: wrap;">
-        <button id="btn-switch-profile" class="modal-btn-secondary"><i class="fa-solid fa-user-pen"></i> Edit / Switch
-          Name</button>
-        <button id="btn-close-leaderboard-bottom" class="modal-btn-primary"
-          style="width: auto; flex-grow: 1;">Close</button>
+        <button id="btn-switch-profile" class="modal-btn-secondary"><i class="fa-solid fa-user-pen"></i> <span data-i18n="edit_switch_name">Edit / Switch Name</span></button>
+        <button id="btn-close-leaderboard-bottom" class="modal-btn-primary" style="width: auto; flex-grow: 1;" data-i18n="close">Close</button>
       </div>
     </div>
   </div>

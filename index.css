@@ -16,7 +16,7 @@
   --text-secondary: #a3a3a3;
   --text-muted: #666666;
   
-  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-main: 'Plus Jakarta Sans', 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 * {
@@ -1164,6 +1164,8 @@ html, body {
   overflow-y: auto;
   padding-right: 4px;
   margin-bottom: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: #333333 transparent;
 }
 
 .leaderboard-list::-webkit-scrollbar {
@@ -1693,7 +1695,20 @@ html, body {
   box-shadow: 0 0 10px var(--green-glow);
 }
 
-/* RTL Support for Hebrew UI */
+/* RTL Support & Heebo Typography for Hebrew UI */
+[dir="rtl"],
+[dir="rtl"] body,
+[dir="rtl"] input,
+[dir="rtl"] button,
+[dir="rtl"] textarea,
+[dir="rtl"] select,
+[dir="rtl"] .modal-card,
+body.rtl-mode,
+body.rtl-mode input,
+body.rtl-mode button {
+  font-family: 'Heebo', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
 [dir="rtl"] body,
 body.rtl-mode {
   text-align: right;
@@ -1716,12 +1731,22 @@ body.rtl-mode {
   text-align: right !important;
 }
 
-[dir="rtl"] .leaderboard-row {
+[dir="rtl"] .leaderboard-list {
+  padding-right: 0;
+  padding-left: 4px;
+}
+
+[dir="rtl"] .leaderboard-item {
+  direction: rtl;
+}
+
+[dir="rtl"] .leaderboard-left {
   text-align: right;
 }
 
-[dir="rtl"] .leaderboard-player-info {
-  text-align: right;
+[dir="rtl"] .leaderboard-right {
+  align-items: flex-start;
+  text-align: left;
 }
 
 [dir="rtl"] .stat-box {
