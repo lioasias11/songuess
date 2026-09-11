@@ -20,7 +20,8 @@
   <!-- Modern Clean Typography: Plus Jakarta Sans & Heebo for Hebrew -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+  <link
+    href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
 
   <!-- FontAwesome Icons -->
@@ -62,6 +63,8 @@
             class="fa-solid fa-chart-simple"></i></button>
         <button id="btn-leaderboard-modal" class="icon-btn" title="View Leaderboard"><i
             class="fa-solid fa-ranking-star"></i></button>
+        <button id="btn-legal-modal" class="icon-btn" title="About & Legal Disclaimer / אודות ופטור משפטי"><i
+            class="fa-solid fa-circle-info"></i></button>
       </div>
     </header>
 
@@ -78,15 +81,13 @@
           <button class="genre-pill-btn pill-blue" data-genre="80s">80s</button>
           <button class="genre-pill-btn pill-cyan" data-genre="90s">90s</button>
           <button class="genre-pill-btn pill-pink" data-genre="2000s">2000s</button>
-          <button class="genre-pill-btn pill-spotify" data-genre="spotify" id="btn-spotify-genre"><i
-              class="fa-brands fa-spotify"></i> Spotify</button>
-          <button class="genre-pill-btn pill-apple" data-genre="apple-music" id="btn-apple-genre"><i
-              class="fa-brands fa-apple"></i> Apple Music</button>
+          <button class="genre-pill-btn pill-spotify" data-genre="custom" id="btn-spotify-genre"><i
+              class="fa-solid fa-cloud-arrow-down"></i> <span data-i18n="import_playlist_genre">Import Playlist</span></button>
         </div>
 
         <!-- Segmented Capsule Progress Bar -->
         <div class="progress-bar-container">
-          <div class="capsule-track" id="capsule-track">
+          <div class="capsule-track" id="capsule-track" role="progressbar" aria-label="Audio snippet timeline" tabindex="0">
             <div id="capsule-progress" class="capsule-progress"></div>
 
             <div class="capsule-segments">
@@ -139,6 +140,14 @@
             </button>
           </div>
         </div>
+
+        <!-- Legal Notice Footer Link -->
+        <footer class="game-disclaimer-footer">
+          <p>
+            <span data-i18n="footer_disclaimer_text">Songuess is an educational non-commercial open-source project. Not affiliated with or endorsed by Spotify or Apple.</span>
+            <a href="#" id="link-open-legal" data-i18n="footer_disclaimer_link">Legal & Fair Use Notice</a>
+          </p>
+        </footer>
       </section>
     </main>
   </div>
@@ -256,8 +265,10 @@
       </div>
 
       <div class="modal-actions" style="margin-top: 1.2rem; gap: 10px; flex-wrap: wrap;">
-        <button id="btn-switch-profile" class="modal-btn-secondary"><i class="fa-solid fa-user-pen"></i> <span data-i18n="edit_switch_name">Edit / Switch Name</span></button>
-        <button id="btn-close-leaderboard-bottom" class="modal-btn-primary" style="width: auto; flex-grow: 1;" data-i18n="close">Close</button>
+        <button id="btn-switch-profile" class="modal-btn-secondary"><i class="fa-solid fa-user-pen"></i> <span
+            data-i18n="edit_switch_name">Edit / Switch Name</span></button>
+        <button id="btn-close-leaderboard-bottom" class="modal-btn-primary" style="width: auto; flex-grow: 1;"
+          data-i18n="close">Close</button>
       </div>
     </div>
   </div>
@@ -299,49 +310,49 @@
     </div>
   </div>
 
-  <!-- Custom Spotify Playlist / Album Modal -->
+  <!-- Unified Import Playlist / Custom Mode Modal -->
   <div id="modal-custom-playlist" class="modal-overlay">
     <div class="modal-card modal-card-large">
       <button class="modal-close-btn" id="btn-close-custom-modal">&times;</button>
 
       <div class="modal-header">
-        <h2><i class="fa-brands fa-spotify" style="color: #22c55e;"></i> CUSTOM PLAYLIST & ALBUM</h2>
-        <p class="modal-subtitle">Play any Spotify playlist, album, or custom tracklist</p>
+        <h2><i class="fa-solid fa-cloud-arrow-down" style="color: #22c55e;"></i> <span data-i18n="import_modal_title">IMPORT PLAYLIST</span></h2>
+        <p class="modal-subtitle" data-i18n="import_modal_sub">Import public playlists, albums, search catalogs or paste songs</p>
       </div>
 
       <!-- Mode Tabs -->
       <div class="custom-tabs-row">
-        <button class="custom-tab-btn active" data-tab="spotify-link"><i class="fa-solid fa-link"></i> Link</button>
-        <button class="custom-tab-btn" data-tab="search-album"><i class="fa-solid fa-compact-disc"></i> Search
-          Album</button>
-        <button class="custom-tab-btn" data-tab="paste-songs"><i class="fa-solid fa-list-check"></i> Paste List</button>
-        <button class="custom-tab-btn" data-tab="presets"><i class="fa-solid fa-star"></i> Featured</button>
+        <button class="custom-tab-btn active" data-tab="spotify-link"><i class="fa-solid fa-link"></i> <span data-i18n="tab_link">Link</span></button>
+        <button class="custom-tab-btn" data-tab="search-album"><i class="fa-solid fa-compact-disc"></i> <span data-i18n="tab_search_album">Search Album</span></button>
+        <button class="custom-tab-btn" data-tab="paste-songs"><i class="fa-solid fa-list-check"></i> <span data-i18n="tab_paste_list">Paste List</span></button>
+        <button class="custom-tab-btn" data-tab="presets"><i class="fa-solid fa-star"></i> <span data-i18n="tab_featured">Featured</span></button>
       </div>
 
-      <!-- Tab 1: Spotify / Apple Link -->
+      <!-- Tab 1: Music Link -->
       <div id="tab-pane-spotify-link" class="custom-tab-pane active">
         <div class="custom-input-group">
-          <label for="custom-spotify-url">Paste Music Link or Album / Artist Name</label>
+          <label for="custom-spotify-url" data-i18n="paste_link_label">Paste Music Link or Album / Artist Name</label>
           <div class="input-with-btn">
             <input type="text" id="custom-spotify-url"
-              placeholder="e.g. Apple Music link, Spotify link, or 'Peer Tasi רדיו שטח 2'..." autocomplete="off">
+              data-i18n-placeholder="paste_link_placeholder"
+              placeholder="Paste playlist / album link, or enter 'Artist - Album'..." autocomplete="off">
             <button id="btn-fetch-spotify" class="modal-btn-primary"><i class="fa-solid fa-cloud-arrow-down"></i>
-              Import</button>
+              <span data-i18n="import_btn">Import</span></button>
           </div>
-          <p class="custom-hint-text">Paste any Apple Music URL, Spotify link, or type an album/artist name to auto-load
-            all tracks!</p>
+          <p class="custom-hint-text" data-i18n="paste_hint_text">Paste any public playlist or album link to auto-load all tracks!</p>
         </div>
       </div>
 
       <!-- Tab 2: Search Album -->
       <div id="tab-pane-search-album" class="custom-tab-pane">
         <div class="custom-input-group">
-          <label for="custom-album-query">Search Any Album or Artist</label>
+          <label for="custom-album-query" data-i18n="search_album_label">Search Any Album or Artist</label>
           <div class="input-with-btn">
             <input type="text" id="custom-album-query"
+              data-i18n-placeholder="search_album_placeholder"
               placeholder="e.g. Billie Eilish HIT ME HARD, Taylor Swift 1989, Oasis..." autocomplete="off">
             <button id="btn-search-album" class="modal-btn-primary"><i class="fa-solid fa-magnifying-glass"></i>
-              Search</button>
+              <span data-i18n="search_btn">Search</span></button>
           </div>
         </div>
         <div id="album-search-results" class="album-results-grid"></div>
@@ -350,34 +361,30 @@
       <!-- Tab 3: Paste Songs List -->
       <div id="tab-pane-paste-songs" class="custom-tab-pane">
         <div class="custom-input-group">
-          <label for="custom-songs-textarea">Song List (One song per line: "Artist - Title")</label>
+          <label for="custom-songs-textarea" data-i18n="paste_songs_label">Song List (One song per line: "Artist - Title")</label>
           <textarea id="custom-songs-textarea" rows="5"
             placeholder="Taylor Swift - Cruel Summer&#10;Dua Lipa - Levitating&#10;Billie Eilish - BIRDS OF A FEATHER&#10;The Weeknd - Blinding Lights"></textarea>
           <button id="btn-apply-pasted-songs" class="modal-btn-secondary" style="margin-top: 8px;"><i
-              class="fa-solid fa-check"></i> Load Text Songs</button>
+              class="fa-solid fa-check"></i> <span data-i18n="load_text_songs_btn">Load Text Songs</span></button>
         </div>
       </div>
 
       <!-- Tab 4: Featured Presets -->
       <div id="tab-pane-presets" class="custom-tab-pane">
-        <p class="custom-hint-text" style="margin-bottom: 10px;">Select a popular curated album or playlist:</p>
+        <p class="custom-hint-text" style="margin-bottom: 10px;" data-i18n="presets_hint">Select a popular curated album or playlist:</p>
         <div class="preset-buttons-grid">
-          <button class="preset-pill-btn" data-preset="tth"><i class="fa-brands fa-spotify"></i> Today's Top Hits
-            (50)</button>
-          <button class="preset-pill-btn" data-preset="billie"><i class="fa-solid fa-compact-disc"></i> Billie Eilish -
-            HIT ME HARD AND SOFT</button>
-          <button class="preset-pill-btn" data-preset="taylor"><i class="fa-solid fa-compact-disc"></i> Taylor Swift -
-            1989 (Taylor's Version)</button>
-          <button class="preset-pill-btn" data-preset="chappell"><i class="fa-solid fa-compact-disc"></i> Chappell Roan
-            - Midwest Princess</button>
-          <button class="preset-pill-btn" data-preset="sabrina"><i class="fa-solid fa-compact-disc"></i> Sabrina
-            Carpenter - Short n' Sweet</button>
-          <button class="preset-pill-btn" data-preset="charli"><i class="fa-solid fa-compact-disc"></i> Charli xcx -
-            BRAT</button>
-          <button class="preset-pill-btn" data-preset="weeknd"><i class="fa-solid fa-compact-disc"></i> The Weeknd -
-            After Hours</button>
-          <button class="preset-pill-btn" data-preset="oasis"><i class="fa-solid fa-compact-disc"></i> Oasis - (What's
-            the Story) Morning Glory?</button>
+          <button class="preset-pill-btn" data-preset="tth"><i class="fa-solid fa-fire"></i> Today's Top Hits (50)</button>
+          <button class="preset-pill-btn" data-preset="billie"><i class="fa-solid fa-compact-disc"></i> Billie Eilish - HIT ME HARD AND SOFT</button>
+          <button class="preset-pill-btn" data-preset="taylor"><i class="fa-solid fa-compact-disc"></i> Taylor Swift - 1989 (Taylor's Version)</button>
+          <button class="preset-pill-btn" data-preset="chappell"><i class="fa-solid fa-compact-disc"></i> Chappell Roan - Midwest Princess</button>
+          <button class="preset-pill-btn" data-preset="sabrina"><i class="fa-solid fa-compact-disc"></i> Sabrina Carpenter - Short n' Sweet</button>
+          <button class="preset-pill-btn" data-preset="charli"><i class="fa-solid fa-compact-disc"></i> Charli xcx - BRAT</button>
+          <button class="preset-pill-btn" data-preset="weeknd"><i class="fa-solid fa-compact-disc"></i> The Weeknd - After Hours</button>
+          <button class="preset-pill-btn" data-preset="oasis"><i class="fa-solid fa-compact-disc"></i> Oasis - (What's the Story) Morning Glory?</button>
+          <button class="preset-pill-btn" data-preset="today_hits"><i class="fa-solid fa-star"></i> A-List Pop & Essentials</button>
+          <button class="preset-pill-btn" data-preset="rap_life"><i class="fa-solid fa-bolt"></i> Rap Life Essentials</button>
+          <button class="preset-pill-btn" data-preset="dance_xl"><i class="fa-solid fa-headphones"></i> Dance XL Club Hits</button>
+          <button class="preset-pill-btn" data-preset="kendrick_essentials"><i class="fa-solid fa-compact-disc"></i> Kendrick Lamar: Essentials</button>
         </div>
       </div>
 
@@ -388,108 +395,28 @@
             <span id="custom-playlist-title" class="custom-title-text">No custom playlist loaded</span>
             <span id="custom-playlist-count" class="custom-count-badge">0 tracks</span>
           </div>
-          <button id="btn-start-custom-game" class="modal-btn-primary" disabled><i class="fa-solid fa-play"></i> Play
-            This Playlist</button>
+          <button id="btn-start-custom-game" class="modal-btn-primary" disabled><i class="fa-solid fa-play"></i> <span data-i18n="play_playlist_btn">Play This Playlist</span></button>
         </div>
         <div id="custom-tracks-preview" class="custom-tracks-list"></div>
       </div>
     </div>
   </div>
 
-  <!-- Apple Music Custom Playlist / Album Modal -->
-  <div id="modal-apple-music" class="modal-overlay">
-    <div class="modal-card modal-card-large modal-apple-theme">
-      <button class="modal-close-btn" id="btn-close-apple-modal">&times;</button>
+  <!-- Legal & Fair Use Disclaimer Modal -->
+  <div id="modal-legal" class="modal-overlay">
+    <div class="modal-card modal-card-large">
+      <button class="modal-close-btn" id="btn-close-legal-modal">&times;</button>
 
       <div class="modal-header">
-        <h2><i class="fa-brands fa-apple" style="color: #fa2d48;"></i> APPLE MUSIC CUSTOM MODE</h2>
-        <p class="modal-subtitle">Play any Apple Music album, playlist, or artist discography</p>
+        <h2 id="legal-modal-title-el"><i class="fa-solid fa-scale-balanced" style="color: #6366f1;"></i> LEGAL & FAIR USE NOTICE</h2>
+        <p id="legal-modal-sub-el" class="modal-subtitle">About Songuess, Copyright Information & Takedown Policy</p>
       </div>
 
-      <!-- Mode Tabs -->
-      <div class="custom-tabs-row apple-tabs">
-        <button class="apple-tab-btn active" data-tab="apple-link"><i class="fa-solid fa-link"></i> Link</button>
-        <button class="apple-tab-btn" data-tab="apple-search"><i class="fa-solid fa-compact-disc"></i> Search
-          Album</button>
-        <button class="apple-tab-btn" data-tab="apple-presets"><i class="fa-solid fa-star"></i> Apple Hits</button>
-        <button class="apple-tab-btn" data-tab="apple-paste"><i class="fa-solid fa-list-check"></i> Paste List</button>
+      <div id="legal-modal-content-el" class="legal-content-body" style="padding: 1rem 0; font-size: 0.88rem; line-height: 1.6; color: var(--text-secondary); max-height: 60vh; overflow-y: auto;">
       </div>
 
-      <!-- Tab 1: Apple Music Link -->
-      <div id="tab-pane-apple-link" class="apple-tab-pane active">
-        <div class="custom-input-group">
-          <label for="apple-music-url">Apple Music Album or Playlist URL</label>
-          <div class="input-with-btn">
-            <input type="text" id="apple-music-url" placeholder="https://music.apple.com/us/album/..."
-              autocomplete="off">
-            <button id="btn-fetch-apple" class="modal-btn-primary btn-apple-action"><i
-                class="fa-solid fa-cloud-arrow-down"></i> Import</button>
-          </div>
-          <p class="custom-hint-text">Paste any Apple Music album or playlist link (e.g. music.apple.com/us/album/...).
-            All tracks import instantly!</p>
-        </div>
-      </div>
-
-      <!-- Tab 2: Search Album / Artist -->
-      <div id="tab-pane-apple-search" class="apple-tab-pane">
-        <div class="custom-input-group">
-          <label for="apple-album-query">Search Apple Music Catalog</label>
-          <div class="input-with-btn">
-            <input type="text" id="apple-album-query"
-              placeholder="e.g. Billie Eilish, Taylor Swift, Kendrick Lamar, Radiohead..." autocomplete="off">
-            <button id="btn-search-apple-album" class="modal-btn-primary btn-apple-action"><i
-                class="fa-solid fa-magnifying-glass"></i> Search</button>
-          </div>
-        </div>
-        <div id="apple-album-results" class="album-results-grid"></div>
-      </div>
-
-      <!-- Tab 3: Featured Apple Music Hits -->
-      <div id="tab-pane-apple-presets" class="apple-tab-pane">
-        <p class="custom-hint-text" style="margin-bottom: 10px;">Select an official Apple Music playlist or essential
-          album:</p>
-        <div class="preset-buttons-grid">
-          <button class="preset-pill-btn apple-preset-btn" data-apple-preset="today_hits"><i
-              class="fa-brands fa-apple"></i> Today's Hits (Apple Music)</button>
-          <button class="preset-pill-btn apple-preset-btn" data-apple-preset="alist_pop"><i
-              class="fa-brands fa-apple"></i> A-List Pop</button>
-          <button class="preset-pill-btn apple-preset-btn" data-apple-preset="rap_life"><i
-              class="fa-brands fa-apple"></i> Rap Life</button>
-          <button class="preset-pill-btn apple-preset-btn" data-apple-preset="dance_xl"><i
-              class="fa-brands fa-apple"></i> Dance XL</button>
-          <button class="preset-pill-btn apple-preset-btn" data-apple-preset="taylor_essentials"><i
-              class="fa-solid fa-compact-disc"></i> Taylor Swift: Essentials</button>
-          <button class="preset-pill-btn apple-preset-btn" data-apple-preset="billie_essentials"><i
-              class="fa-solid fa-compact-disc"></i> Billie Eilish: Essentials</button>
-          <button class="preset-pill-btn apple-preset-btn" data-apple-preset="weeknd_essentials"><i
-              class="fa-solid fa-compact-disc"></i> The Weeknd: Essentials</button>
-          <button class="preset-pill-btn apple-preset-btn" data-apple-preset="kendrick_essentials"><i
-              class="fa-solid fa-compact-disc"></i> Kendrick Lamar: Essentials</button>
-        </div>
-      </div>
-
-      <!-- Tab 4: Paste Songs List -->
-      <div id="tab-pane-apple-paste" class="apple-tab-pane">
-        <div class="custom-input-group">
-          <label for="apple-songs-textarea">Song List (One song per line: "Artist - Title")</label>
-          <textarea id="apple-songs-textarea" rows="5"
-            placeholder="Taylor Swift - Cruel Summer&#10;Dua Lipa - Levitating&#10;Kendrick Lamar - Not Like Us"></textarea>
-          <button id="btn-apply-apple-pasted" class="modal-btn-secondary" style="margin-top: 8px;"><i
-              class="fa-solid fa-check"></i> Load Text Songs</button>
-        </div>
-      </div>
-
-      <!-- Status & Track Preview Container -->
-      <div id="apple-status-area" class="custom-status-area">
-        <div class="custom-summary-row">
-          <div class="custom-info">
-            <span id="apple-playlist-title" class="custom-title-text">No Apple Music playlist loaded</span>
-            <span id="apple-playlist-count" class="custom-count-badge apple-badge">0 tracks</span>
-          </div>
-          <button id="btn-start-apple-game" class="modal-btn-primary btn-apple-action" disabled><i
-              class="fa-solid fa-play"></i> Play Apple Playlist</button>
-        </div>
-        <div id="apple-tracks-preview" class="custom-tracks-list"></div>
+      <div class="modal-actions" style="margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+        <button id="btn-agree-legal" class="modal-btn-primary" style="width: 100%;">Understood & Close</button>
       </div>
     </div>
   </div>

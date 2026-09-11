@@ -7,15 +7,15 @@
   --bg-input: #1e1e1e;
   --border-subtle: #2e2e2e;
   --border-light: rgba(255, 255, 255, 0.1);
-  
+
   --green: #22c55e;
   --green-hover: #16a34a;
   --green-glow: rgba(34, 197, 94, 0.35);
-  
+
   --text-primary: #ffffff;
   --text-secondary: #a3a3a3;
   --text-muted: #666666;
-  
+
   --font-main: 'Plus Jakarta Sans', 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -32,22 +32,27 @@
   width: 6px;
   height: 6px;
 }
+
 *::-webkit-scrollbar-track {
   background: transparent;
 }
+
 *::-webkit-scrollbar-thumb {
   background: #333333;
   border-radius: 4px;
 }
+
 *::-webkit-scrollbar-thumb:hover {
   background: #555555;
 }
 
-html, body {
+html,
+body {
   height: 100vh;
   height: 100dvh;
   width: 100vw;
-  overflow: hidden; /* Strict unscrollable */
+  overflow: hidden;
+  /* Strict unscrollable */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -229,13 +234,33 @@ html, body {
   box-shadow: 0 0 15px var(--green-glow);
 }
 
-.genre-pill-btn.pill-yellow { color: #eab308; }
-.genre-pill-btn.pill-orange { color: #f97316; }
-.genre-pill-btn.pill-red { color: #ef4444; }
-.genre-pill-btn.pill-purple { color: #a855f7; }
-.genre-pill-btn.pill-blue { color: #3b82f6; }
-.genre-pill-btn.pill-cyan { color: #06b6d4; }
-.genre-pill-btn.pill-pink { color: #ec4899; }
+.genre-pill-btn.pill-yellow {
+  color: #eab308;
+}
+
+.genre-pill-btn.pill-orange {
+  color: #f97316;
+}
+
+.genre-pill-btn.pill-red {
+  color: #ef4444;
+}
+
+.genre-pill-btn.pill-purple {
+  color: #a855f7;
+}
+
+.genre-pill-btn.pill-blue {
+  color: #3b82f6;
+}
+
+.genre-pill-btn.pill-cyan {
+  color: #06b6d4;
+}
+
+.genre-pill-btn.pill-pink {
+  color: #ec4899;
+}
 
 /* Segmented Capsule Progress Bar */
 .progress-bar-container {
@@ -244,12 +269,24 @@ html, body {
 }
 
 .capsule-track {
-  height: 16px;
-  background: #2a2a2a;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 999px;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.capsule-track:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.capsule-track:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
 }
 
 .capsule-progress {
@@ -263,6 +300,8 @@ html, body {
   transition: none;
   z-index: 1;
   will-change: width;
+  box-shadow: 0 0 12px rgba(30, 215, 96, 0.5);
+  pointer-events: none;
 }
 
 .capsule-segments {
@@ -271,15 +310,49 @@ html, body {
   display: flex;
   height: 100%;
   width: 100%;
+  pointer-events: none;
 }
 
 .c-segment {
   height: 100%;
   border-right: 2px solid #121212;
+  background: rgba(255, 255, 255, 0.02);
+  box-sizing: border-box;
+  transition: background-color 0.25s ease, opacity 0.2s ease;
 }
 
 .c-segment:last-child {
   border-right: none;
+}
+
+/* Available unlocked listening portion */
+.c-segment.unlocked {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Active current step waiting for guess */
+.c-segment.active {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Skipped attempt */
+.c-segment.skipped {
+  background: rgba(234, 179, 8, 0.8);
+}
+
+/* Incorrect guess */
+.c-segment.failed {
+  background: rgba(239, 68, 68, 0.85);
+}
+
+/* Winning correct guess */
+.c-segment.correct {
+  background: rgba(30, 215, 96, 0.95);
+}
+
+/* When audio snippet is actively playing, fade segment background so pure green progress fills under the black dividers */
+.capsule-track.playing .c-segment {
+  background: transparent !important;
 }
 
 /* Hero Center Play Section */
@@ -514,9 +587,11 @@ html, body {
 .autocomplete-dropdown::-webkit-scrollbar {
   width: 5px;
 }
+
 .autocomplete-dropdown::-webkit-scrollbar-track {
   background: #181818;
 }
+
 .autocomplete-dropdown::-webkit-scrollbar-thumb {
   background: #333333;
   border-radius: 4px;
@@ -629,19 +704,27 @@ html, body {
 }
 
 @keyframes spotify-marquee-ltr {
-  0%, 20% {
+
+  0%,
+  20% {
     transform: translateX(0);
   }
-  80%, 100% {
+
+  80%,
+  100% {
     transform: translateX(calc(-1 * var(--marquee-shift, 0px)));
   }
 }
 
 @keyframes spotify-marquee-rtl {
-  0%, 20% {
+
+  0%,
+  20% {
     transform: translateX(0);
   }
-  80%, 100% {
+
+  80%,
+  100% {
     transform: translateX(var(--marquee-shift, 0px));
   }
 }
@@ -808,8 +891,13 @@ html, body {
   gap: 4px;
 }
 
-.streaming-link.itunes { color: #fc3c44; }
-.streaming-link.yt { color: #ff0000; }
+.streaming-link.itunes {
+  color: #fc3c44;
+}
+
+.streaming-link.yt {
+  color: #ff0000;
+}
 
 .stats-dashboard {
   display: grid;
@@ -1037,7 +1125,7 @@ html, body {
   }
 
   .capsule-track {
-    height: 14px;
+    height: 16px;
   }
 
   /* Bottom Controls: Ergonomic Full-Width Stacked Layout on Phones */
@@ -1103,15 +1191,18 @@ html, body {
   .brand-name {
     font-size: 0.85rem;
   }
+
   .header-stats-pill {
     padding: 0.15rem 0.35rem;
     font-size: 0.65rem;
   }
+
   .icon-btn {
     width: 26px;
     height: 26px;
     font-size: 0.68rem;
   }
+
   .lang-toggle-pill {
     font-size: 0.68rem !important;
     height: 26px !important;
@@ -1221,9 +1312,21 @@ html, body {
   flex-shrink: 0;
 }
 
-.rank-1 { color: #f59e0b; } /* Gold */
-.rank-2 { color: #94a3b8; } /* Silver */
-.rank-3 { color: #b45309; } /* Bronze */
+.rank-1 {
+  color: #f59e0b;
+}
+
+/* Gold */
+.rank-2 {
+  color: #94a3b8;
+}
+
+/* Silver */
+.rank-3 {
+  color: #b45309;
+}
+
+/* Bronze */
 
 .leaderboard-name {
   font-weight: 700;
@@ -1312,7 +1415,7 @@ html, body {
 .custom-tab-btn.active {
   background: #282828;
   color: var(--green);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .custom-tab-pane {
@@ -1551,10 +1654,12 @@ html, body {
   border-color: rgba(34, 197, 94, 0.4);
   color: #4ade80;
 }
+
 .pill-spotify:hover {
   background: rgba(34, 197, 94, 0.15);
   border-color: var(--green);
 }
+
 .pill-spotify.active {
   background: var(--green) !important;
   color: #000 !important;
@@ -1567,10 +1672,12 @@ html, body {
   border-color: rgba(250, 45, 72, 0.4);
   color: #fb7185;
 }
+
 .pill-apple:hover {
   background: rgba(250, 45, 72, 0.15);
   border-color: #fa2d48;
 }
+
 .pill-apple.active {
   background: #fa2d48 !important;
   color: #ffffff !important;
@@ -1595,20 +1702,23 @@ html, body {
   transition: all 0.2s ease;
   white-space: nowrap;
 }
+
 .apple-tabs .apple-tab-btn:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.05);
 }
+
 .apple-tabs .apple-tab-btn.active {
   background: #282828;
   color: #fa2d48;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .apple-tab-pane {
   display: none;
   margin-bottom: 1.2rem;
 }
+
 .apple-tab-pane.active {
   display: block;
 }
@@ -1617,6 +1727,7 @@ html, body {
   background: #fa2d48 !important;
   color: #fff !important;
 }
+
 .btn-apple-action:hover:not(:disabled) {
   background: #e11d48 !important;
   box-shadow: 0 0 12px rgba(250, 45, 72, 0.4);
@@ -1794,3 +1905,37 @@ body.rtl-mode {
   flex-direction: row !important;
 }
 
+/* Legal Disclaimer Footer & Modal Styling */
+.game-disclaimer-footer {
+  margin-top: 1.5rem;
+  padding: 0.8rem 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted, #71717a);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.game-disclaimer-footer a {
+  color: var(--color-primary, #6366f1);
+  text-decoration: underline;
+  margin-left: 6px;
+  transition: color 0.2s;
+}
+
+.game-disclaimer-footer a:hover {
+  color: #fff;
+}
+
+[dir="rtl"] .game-disclaimer-footer a {
+  margin-left: 0;
+  margin-right: 6px;
+}
+
+.legal-content-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.legal-content-body::-webkit-scrollbar-thumb {
+  background: var(--border-subtle, #333);
+  border-radius: 4px;
+}

@@ -126,14 +126,22 @@ function playCurrentSnippet() {
   const playBtn = document.getElementById('btn-play');
   const playIcon = document.getElementById('play-btn-icon');
   const durationLabel = document.getElementById('snippet-duration');
+  const track = document.getElementById('capsule-track');
   const audio = getAudioPlayer();
   if (!audio) return;
+
+  const fill = document.getElementById('capsule-progress');
+  if (fill) {
+    fill.style.transition = 'none';
+    fill.style.width = '0%';
+  }
 
   audio.currentTime = 0;
   audio.play().then(() => {
     isAudioPlaying = true;
     if (playBtn) playBtn.classList.add('playing');
     if (playIcon) playIcon.className = 'fa-solid fa-pause';
+    if (track) track.classList.add('playing');
 
     let startTime = performance.now();
     let audioStarted = false;
@@ -167,12 +175,12 @@ function playCurrentSnippet() {
       }
 
       if (elapsed >= actualAudioDuration || audio.ended) {
-        // Lock visually to the exact target segment boundary before stopping
+        // Lock visually to the exact target segment boundary before pausing
         updateCapsuleFill(uiDuration, uiDuration, false);
         if (durationLabel) {
           durationLabel.textContent = uiDuration.toFixed(1) + 's';
         }
-        stopAudio();
+        handleSnippetEnd(uiDuration);
         return;
       }
 
@@ -187,6 +195,51 @@ function playCurrentSnippet() {
   });
 }
 
+function handleSnippetEnd(uiDuration) {
+  const audio = getAudioPlayer();
+  if (audio) {
+    audio.pause();
+    audio.currentTime = 0;
+  }
+  isAudioPlaying = false;
+
+  if (playbackRaf) {
+    cancelAnimationFrame(playbackRaf);
+    playbackRaf = null;
+  }
+
+  const playBtn = document.getElementById('btn-play');
+  const playIcon = document.getElementById('play-btn-icon');
+  if (playBtn) playBtn.classList.remove('playing');
+  if (playIcon) playIcon.className = 'fa-solid fa-play';
+
+  const durationLabel = document.getElementById('snippet-duration');
+  const currentDuration = DURATIONS[gameState.attemptsUsed] || 0.1;
+  if (durationLabel) {
+    durationLabel.textContent = currentDuration.toFixed(1) + 's';
+  }
+
+  // Visually lock at the exact divider boundary
+  updateCapsuleFill(uiDuration, uiDuration, false);
+
+  // Briefly hold at the boundary so the user sees completion, then glide back
+  playbackTimeout = setTimeout(() => {
+    if (!isAudioPlaying) {
+      const track = document.getElementById('capsule-track');
+      if (track) track.classList.remove('playing');
+
+      const fill = document.getElementById('capsule-progress');
+      if (fill) {
+        fill.style.transition = 'width 0.25s ease-out';
+        fill.style.width = '0%';
+        playbackTimeout = setTimeout(() => {
+          if (fill) fill.style.transition = 'none';
+        }, 260);
+      }
+    }
+  }, 200);
+}
+
 function playFullPreview() {
   if (!gameState.currentSong || !gameState.currentSong.previewUrl) return;
 
@@ -195,15 +248,25 @@ function playFullPreview() {
 
   const playBtn = document.getElementById('btn-play');
   const playIcon = document.getElementById('play-btn-icon');
+  const revealPlayBtn = document.getElementById('btn-reveal-play');
   const durationLabel = document.getElementById('snippet-duration');
+  const track = document.getElementById('capsule-track');
   const audio = getAudioPlayer();
   if (!audio) return;
+
+  const fill = document.getElementById('capsule-progress');
+  if (fill) {
+    fill.style.transition = 'none';
+    fill.style.width = '0%';
+  }
 
   audio.currentTime = 0;
   audio.play().then(() => {
     isAudioPlaying = true;
     if (playBtn) playBtn.classList.add('playing');
     if (playIcon) playIcon.className = 'fa-solid fa-pause';
+    if (revealPlayBtn) revealPlayBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+    if (track) track.classList.add('playing');
 
     const totalDur = audio.duration || 30.0;
     let startTime = performance.now();
@@ -266,13 +329,27 @@ function stopAudio() {
   if (playBtn) playBtn.classList.remove('playing');
   if (playIcon) playIcon.className = 'fa-solid fa-play';
 
+  const revealPlayBtn = document.getElementById('btn-reveal-play');
+  if (revealPlayBtn) revealPlayBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+
+  const track = document.getElementById('capsule-track');
+  if (track) track.classList.remove('playing');
+
   const durationLabel = document.getElementById('snippet-duration');
-  const currentDuration = DURATIONS[gameState.attemptsUsed] || 0.1;
   if (durationLabel) {
-    durationLabel.textContent = currentDuration.toFixed(1) + 's';
+    if (gameState && gameState.isFinished) {
+      durationLabel.textContent = '30.0s';
+    } else {
+      const currentDuration = DURATIONS[gameState.attemptsUsed] || 0.1;
+      durationLabel.textContent = currentDuration.toFixed(1) + 's';
+    }
   }
 
-  updateCapsuleFill(0, currentDuration, false);
+  const fill = document.getElementById('capsule-progress');
+  if (fill) {
+    fill.style.transition = 'none';
+    fill.style.width = '0%';
+  }
 }
 
 function updateCapsuleFill(currentSeconds, totalAllowed, isFullPreview = false) {

@@ -148,7 +148,7 @@ async function fetchTrackData(query) {
 
   // 2. Try iTunes search with original query and aliases
   const aliases = (typeof getArtistAliases === 'function') ? getArtistAliases(query) : [query];
-  
+
   for (const q of aliases) {
     try {
       const itunesUrl = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=song&limit=10&media=music';
@@ -193,7 +193,7 @@ async function fetchTrackData(query) {
           });
           const best = candidates[0];
           const bestScore = scoreTrackCandidate({ trackName: best.title, artistName: (best.artist && best.artist.name) || '', collectionName: (best.album && best.album.title) || '' }, targetTitle, targetArtist);
-          
+
           if (bestScore >= 100) {
             return {
               previewUrl: best.preview,
@@ -586,7 +586,7 @@ async function fetchApplePlaylistTracks(rawUrl) {
   function extractSongIds(text) {
     const songIds = new Set();
     if (!text) return [];
-    
+
     // Isolate main tracklist section before recommendations/shelf-grid footer
     const mainSection = text.split(/class="[^"]*(?:shelf-grid|shelf-component|containerDetailTracklistFooter)[^"]*"/i)[0];
 
@@ -596,7 +596,7 @@ async function fetchApplePlaylistTracks(rawUrl) {
     while ((m = songUrlRegex.exec(mainSection)) !== null) {
       if (m[1]) songIds.add(m[1]);
     }
-    
+
     // Pattern 2: standard music.apple.com song urls
     const stdRegex = /music\.apple\.com\/[^\/]+\/song\/[^\/]+\/(\d+)/g;
     while ((m = stdRegex.exec(mainSection)) !== null) {
@@ -609,9 +609,9 @@ async function fetchApplePlaylistTracks(rawUrl) {
   function extractTitle(text) {
     if (!text) return 'Apple Music Playlist';
     const m = text.match(/<title>([^<]+)<\/title>/i) ||
-              text.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-              text.match(/Title:\s*‎?([^\n\r]+)/i) ||
-              text.match(/##\s*([^\n\r]+)/);
+      text.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+      text.match(/Title:\s*‎?([^\n\r]+)/i) ||
+      text.match(/##\s*([^\n\r]+)/);
     if (m && m[1]) {
       return m[1].replace(/by .* - Apple Music|- Apple Music|on Apple Music/gi, '').trim();
     }

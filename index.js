@@ -67,18 +67,35 @@ function setupEvents() {
     });
   });
 
-  // Giant Center Play Button
+  // Giant Center Play Button & Progress Bar Track Control
+  function toggleSnippetPlayback() {
+    if (gameState.isFinished) {
+      if (isAudioPlaying) {
+        stopAudio();
+      } else {
+        playFullPreview();
+      }
+    } else {
+      if (isAudioPlaying) {
+        stopAudio();
+      } else {
+        playCurrentSnippet();
+      }
+    }
+  }
+
   const playBtn = document.getElementById('btn-play');
   if (playBtn) {
-    playBtn.addEventListener('click', () => {
-      if (gameState.isFinished) {
-        playFullPreview();
-      } else {
-        if (isAudioPlaying) {
-          stopAudio();
-        } else {
-          playCurrentSnippet();
-        }
+    playBtn.addEventListener('click', toggleSnippetPlayback);
+  }
+
+  const capsuleTrack = document.getElementById('capsule-track');
+  if (capsuleTrack) {
+    capsuleTrack.addEventListener('click', toggleSnippetPlayback);
+    capsuleTrack.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        toggleSnippetPlayback();
       }
     });
   }
@@ -121,7 +138,11 @@ function setupEvents() {
   const revealPlayBtn = document.getElementById('btn-reveal-play');
   if (revealPlayBtn) {
     revealPlayBtn.addEventListener('click', () => {
-      playFullPreview();
+      if (isAudioPlaying) {
+        stopAudio();
+      } else {
+        playFullPreview();
+      }
     });
   }
 
@@ -260,6 +281,32 @@ function setupEvents() {
       applyApplePreset(pBtn.dataset.applePreset);
     });
   });
+
+  // Legal & Fair Use Modal
+  const legalModal = document.getElementById('modal-legal');
+  const openLegalModal = () => {
+    if (legalModal) legalModal.classList.add('active');
+  };
+  const closeLegalModal = () => {
+    if (legalModal) legalModal.classList.remove('active');
+  };
+
+  const btnLegalModal = document.getElementById('btn-legal-modal');
+  if (btnLegalModal) btnLegalModal.addEventListener('click', openLegalModal);
+
+  const linkOpenLegal = document.getElementById('link-open-legal');
+  if (linkOpenLegal) {
+    linkOpenLegal.addEventListener('click', (e) => {
+      e.preventDefault();
+      openLegalModal();
+    });
+  }
+
+  const btnCloseLegalModal = document.getElementById('btn-close-legal-modal');
+  if (btnCloseLegalModal) btnCloseLegalModal.addEventListener('click', closeLegalModal);
+
+  const btnAgreeLegal = document.getElementById('btn-agree-legal');
+  if (btnAgreeLegal) btnAgreeLegal.addEventListener('click', closeLegalModal);
 
   // Keyboard spacebar listener to toggle snippet playback
   document.addEventListener('keydown', (e) => {

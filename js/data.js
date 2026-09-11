@@ -64,16 +64,21 @@ const TRANSLATIONS = {
     stats_title: "YOUR STATISTICS",
     stats_sub: "Performance and guess distribution",
     guess_distribution: "Guess Distribution",
-    spotify_modal_title: "CUSTOM PLAYLIST & ALBUM",
-    spotify_modal_sub: "Play any Spotify playlist, album, or custom tracklist",
-    apple_modal_title: "APPLE MUSIC PLAYLISTS",
-    apple_modal_sub: "Play Israeli and international Apple Music playlists or albums",
+    import_modal_title: "IMPORT PLAYLIST",
+    import_modal_sub: "Import public playlists, albums, search catalogs or paste songs",
     tab_link: "Link",
     tab_search_album: "Search Album",
     tab_paste_list: "Paste List",
     tab_featured: "Featured",
     paste_link_label: "Paste Music Link or Album / Artist Name",
-    paste_link_placeholder: "e.g. Apple Music link, Spotify link, or 'Peer Tasi רדיו שטח 2'...",
+    paste_link_placeholder: "Paste playlist or album link, or search 'Artist - Album'...",
+    paste_hint_text: "Paste any public playlist or album link to auto-load all tracks!",
+    search_album_label: "Search Any Album or Artist",
+    search_album_placeholder: "e.g. Billie Eilish HIT ME HARD, Taylor Swift 1989, Oasis...",
+    search_btn: "Search",
+    paste_songs_label: "Song List (One song per line: 'Artist - Title')",
+    load_text_songs_btn: "Load Text Songs",
+    presets_hint: "Select a popular curated album or playlist:",
     import_btn: "Import",
     play_playlist_btn: "Play This Playlist",
     loaded_badge: "{count} tracks",
@@ -81,6 +86,13 @@ const TRANSLATIONS = {
     validation_min_chars: "Name must be at least 2 characters.",
     validation_name_taken: "Username is already taken. Please choose another name.",
     checking_name_btn: "Checking...",
+    legal_modal_title: "LEGAL & FAIR USE NOTICE",
+    legal_modal_sub: "About Songuess, Copyright Information & Takedown Policy",
+    footer_disclaimer_text: "Songuess is an educational non-commercial open-source project. Not affiliated with or endorsed by Spotify or Apple.",
+    footer_disclaimer_link: "Legal & Fair Use Notice",
+    legal_agree_btn: "Understood & Close",
+    import_playlist_genre: "Import Playlist",
+    custom_tracklist_title: "Custom Tracklist",
     genres: {
       "white-girl-music": "White Girl Music",
       "pop": "Pop",
@@ -90,8 +102,7 @@ const TRANSLATIONS = {
       "80s": "80s",
       "90s": "90s",
       "2000s": "2000s",
-      "spotify": "Spotify",
-      "apple-music": "Apple Music"
+      "custom": "Import Playlist"
     }
   },
   he: {
@@ -134,16 +145,21 @@ const TRANSLATIONS = {
     stats_title: "הסטטיסטיקה שלך",
     stats_sub: "ביצועים והתפלגות ניחושים",
     guess_distribution: "התפלגות ניחושים",
-    spotify_modal_title: "פלייליסט ואלבומים מספוטיפיי",
-    spotify_modal_sub: "שחק עם כל פלייליסט, אלבום או רשימת שירים",
-    apple_modal_title: "פלייליסטים מאפל מיוזיק",
-    apple_modal_sub: "שחק עם פלייליסטים ישראליים ולועזיים מאפל מיוזיק",
+    import_modal_title: "ייבוא פלייליסט ואלבומים",
+    import_modal_sub: "ייבא פלייליסטים פומביים, אלבומים, חפש בקטלוג או הדבק שירים",
     tab_link: "קישור",
     tab_search_album: "חיפוש אלבום",
     tab_paste_list: "הדבקת רשימה",
     tab_featured: "מומלצים",
-    paste_link_label: "הדבק קישור למוזיקה או שם אלבום / אמן",
-    paste_link_placeholder: "למשל: קישור לספוטיפיי, אפל מיוזיק, או 'פאר טסי רדיו שטח 2'...",
+    paste_link_label: "הדבק קישור לפלייליסט או שם אלבום / אמן",
+    paste_link_placeholder: "הדבק קישור לפלייליסט/אלבום, או חפש 'שם אמן - אלבום'...",
+    paste_hint_text: "הדבק כל קישור פומבי לפלייליסט או אלבום כדי לטעון את כל השירים מיד!",
+    search_album_label: "חיפוש כל אלבום או אמן",
+    search_album_placeholder: "למשל: עומר אדם, פאר טסי רדיו שטח, טונה, בילי אייליש...",
+    search_btn: "חיפוש",
+    paste_songs_label: "רשימת שירים (שיר בכל שורה: 'שם אמן - שם שיר')",
+    load_text_songs_btn: "טען שירי טקסט",
+    presets_hint: "בחר מתוך אלבומים ופלייליסטים מובילים:",
     import_btn: "ייבוא",
     play_playlist_btn: "שחק עם הפלייליסט",
     loaded_badge: "{count} שירים",
@@ -151,6 +167,13 @@ const TRANSLATIONS = {
     validation_min_chars: "השם חייב להכיל לפחות 2 תווים.",
     validation_name_taken: "שם המשתמש כבר תפוס. אנא בחר שם אחר.",
     checking_name_btn: "בודק זמינות...",
+    legal_modal_title: "הצהרה משפטית ושימוש הוגן",
+    legal_modal_sub: "אודות גלהשיר, זכויות יוצרים ומדיניות הסרת תכנים",
+    footer_disclaimer_text: "גלהשיר הוא פרויקט לימודי בקוד פתוח ללא מטרות רווח. אינו קשור או נתמך ע״י Spotify או Apple.",
+    footer_disclaimer_link: "הצהרה משפטית ושימוש הוגן",
+    legal_agree_btn: "הבנתי וסגור",
+    import_playlist_genre: "ייבוא פלייליסט",
+    custom_tracklist_title: "רשימת שירים מותאמת",
     genres: {
       "white-girl-music": "להיטי פופ מוכרים",
       "pop": "פופ",
@@ -160,8 +183,7 @@ const TRANSLATIONS = {
       "80s": "שנות ה-80",
       "90s": "שנות ה-90",
       "2000s": "שנות ה-2000",
-      "spotify": "ספוטיפיי",
-      "apple-music": "אפל מיוזיק"
+      "custom": "ייבוא פלייליסט"
     }
   }
 };
@@ -206,10 +228,8 @@ function applyLanguage(lang) {
     const genre = btn.dataset.genre;
     const dictGenres = (TRANSLATIONS[currentLanguage] && TRANSLATIONS[currentLanguage].genres) || {};
     if (dictGenres[genre]) {
-      if (genre === 'spotify') {
-        btn.innerHTML = `<i class="fa-brands fa-spotify"></i> ${dictGenres[genre]}`;
-      } else if (genre === 'apple-music') {
-        btn.innerHTML = `<i class="fa-brands fa-apple"></i> ${dictGenres[genre]}`;
+      if (genre === 'custom' || genre === 'spotify') {
+        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down"></i> ${dictGenres[genre] || t('import_playlist_genre')}`;
       } else {
         btn.textContent = dictGenres[genre];
       }
@@ -287,6 +307,74 @@ function applyLanguage(lang) {
   // Update header stats text (PTS, STREAK)
   if (typeof updateHeaderStats === 'function') {
     updateHeaderStats();
+  }
+
+  // Update Legal Modal Content dynamically according to currentLanguage
+  const legalTitle = document.getElementById('legal-modal-title-el');
+  if (legalTitle) {
+    legalTitle.innerHTML = `<i class="fa-solid fa-scale-balanced" style="color: #6366f1;"></i> ${t('legal_modal_title')}`;
+  }
+  const legalSub = document.getElementById('legal-modal-sub-el');
+  if (legalSub) {
+    legalSub.textContent = t('legal_modal_sub');
+  }
+  const legalAgreeBtn = document.getElementById('btn-agree-legal');
+  if (legalAgreeBtn) {
+    legalAgreeBtn.textContent = t('legal_agree_btn');
+  }
+
+  const legalContentEl = document.getElementById('legal-modal-content-el');
+  if (legalContentEl) {
+    if (currentLanguage === 'he') {
+      legalContentEl.innerHTML = `
+        <h4 style="color: #fff; margin-bottom: 0.5rem;"><i class="fa-solid fa-graduation-cap"></i> 1. מטרה לימודית וללא כוונת רווח (Non-Commercial & Educational)</h4>
+        <p style="margin-bottom: 1rem;">
+          גלהשיר (Songuess) הוא פרויקט אינטרנט עצמאי, חינמי ופתוח (Open-Source), שפותח אך ורק למטרות לימודיות, מחקר אישי, תיק עבודות והנאה פרטית. האתר אינו מניב <strong>כל הכנסה כספית</strong>, אינו מציג פרסומות, אינו מקבל תרומות ואינו גובה תשלום כלשהו מהמשתמשים.
+        </p>
+
+        <h4 style="color: #fff; margin-bottom: 0.5rem;"><i class="fa-solid fa-shield-halved"></i> 2. פטור מסימני מסחר (Trademark Disclaimer)</h4>
+        <p style="margin-bottom: 1rem;">
+          פרויקט זה <strong>אינו קשור, אינו ממומן, אינו מורשה, ואינו נתמך באופן רשמי</strong> על ידי Spotify AB, Apple Inc., Deezer, YouTube, אקו"ם או כל חברה/תאגיד מוזיקה אחר. כל שמות המוצרים, הסימנים המסחריים, השמות והלוגואים המוזכרים או המוצגים שייכים לבעלי הזכויות החוקיים שלהם בלבד.
+        </p>
+
+        <h4 style="color: #fff; margin-bottom: 0.5rem;"><i class="fa-solid fa-music"></i> 3. זכויות יוצרים ושימוש הוגן (Fair Use & Copyright)</h4>
+        <p style="margin-bottom: 1rem;">
+          כל קטעי השמע הקצרים (Previews), עטיפות האלבומים, שמות השירים ושמות האמנים הינם הקניין הרוחני הבלעדי של בעלי זכויות היוצרים (יוצרים, מלחינים, מבצעים וחברות תקליטים). האתר אינו מאחסן, שומר, מאפשר הורדה או מוכר קובצי מוזיקה מלאים. דגימות השמע הקצרות נטענות באופן דינמי ונקודתי דרך מנועי חיפוש פומביים לצורך המחשה ומשחק טריוויה בלבד, תחת עקרונות השימוש ההוגן (סעיף 19 לחוק זכות יוצרים, תשס"ח-2007 ו-17 U.S. Code § 107).
+        </p>
+
+        <h4 style="color: #fff; margin-bottom: 0.5rem;"><i class="fa-solid fa-envelope-open-text"></i> 4. מדיניות הודעה והסרה (Notice & Takedown Policy - DMCA)</h4>
+        <p style="margin-bottom: 0.5rem;">
+          אם הנך בעל זכויות יוצרים או נציג מורשה, והנך סבור כי תוכן או קישור כלשהו באתר מפר את זכויותיך, אנא פנה ישירות באמצעות פתיחת Issue ב-GitHub של הפרויקט, והתוכן יוסר לאלתר.
+        </p>
+      `;
+    } else {
+      legalContentEl.innerHTML = `
+        <h4 style="color: #fff; margin-bottom: 0.5rem;"><i class="fa-solid fa-graduation-cap"></i> 1. Non-Commercial & Educational Purpose</h4>
+        <p style="margin-bottom: 1rem;">
+          Songuess is an independent, free, open-source educational web application created solely for personal entertainment, research, and non-commercial portfolio purposes. This website generates <strong>zero revenue</strong>, contains no advertisements, accepts no monetary donations, and charges no fees.
+        </p>
+
+        <h4 style="color: #fff; margin-bottom: 0.5rem;"><i class="fa-solid fa-shield-halved"></i> 2. Trademark Disclaimer</h4>
+        <p style="margin-bottom: 1rem;">
+          Songuess is <strong>not affiliated, associated, authorized, endorsed by, or in any way officially connected</strong> with Spotify AB, Apple Inc., Deezer, YouTube, or any of their subsidiaries or affiliates. Any product names, logos, brands, and other trademarks or images featured or referred to within this application are the property of their respective trademark holders.
+        </p>
+
+        <h4 style="color: #fff; margin-bottom: 0.5rem;"><i class="fa-solid fa-music"></i> 3. Music Copyright & Fair Use</h4>
+        <p style="margin-bottom: 1rem;">
+          All audio preview clips, album artwork, track titles, and artist names are the intellectual property of their respective copyright owners (artists, composers, and record labels). Songuess does not host, store, download, or sell any full music tracks. Short promotional audio samples are retrieved strictly on-demand via public search indexes solely for interactive trivia demonstration under principles of Fair Use (17 U.S. Code § 107 / Israeli Copyright Act 2007).
+        </p>
+
+        <h4 style="color: #fff; margin-bottom: 0.5rem;"><i class="fa-solid fa-envelope-open-text"></i> 4. Notice and Takedown Policy (DMCA)</h4>
+        <p style="margin-bottom: 0.5rem;">
+          If you are a copyright owner or an agent thereof and believe that any content hosted or referenced on this site infringes upon your copyright, please contact the project maintainer via GitHub issues or repository notice, and the material will be removed immediately.
+        </p>
+      `;
+    }
+  }
+
+  // Refresh Custom Import Modal preview if open
+  if (typeof updateCustomModalPreview === 'function') {
+    updateCustomModalPreview();
   }
 }
 

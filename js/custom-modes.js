@@ -49,10 +49,13 @@ function updateCustomModalPreview() {
   const startBtn = document.getElementById('btn-start-custom-game');
 
   const tracks = stagedCustomPlaylist.tracks || [];
-  const title = stagedCustomPlaylist.title || (tracks.length > 0 ? 'Custom Tracklist' : 'No custom playlist loaded');
+  const defaultTitle = (typeof t === 'function') ? (tracks.length > 0 ? t('custom_tracklist_title') || 'Custom Tracklist' : t('no_playlist_loaded')) : 'No playlist loaded';
+  const title = stagedCustomPlaylist.title || defaultTitle;
 
   if (titleEl) titleEl.textContent = title;
-  if (countEl) countEl.textContent = tracks.length + ' tracks';
+  if (countEl) {
+    countEl.textContent = (typeof t === 'function') ? t('loaded_badge', { count: tracks.length }) : tracks.length + ' tracks';
+  }
 
   if (listEl) {
     if (tracks.length === 0) {
@@ -184,7 +187,7 @@ async function handleAlbumSearch() {
   try {
     const searchUrl = 'https://itunes.apple.com/search?term=' + encodeURIComponent(query) + '&entity=album&limit=8&media=music';
     const data = await fetchJsonp(searchUrl, 3500);
-    
+
     if (data && data.results && data.results.length > 0) {
       resultsContainer.innerHTML = '';
       data.results.forEach(album => {
@@ -248,7 +251,7 @@ function handlePastedSongs() {
 }
 
 function applyCustomPreset(presetKey) {
-  const preset = CUSTOM_PRESETS[presetKey];
+  const preset = CUSTOM_PRESETS[presetKey] || (typeof APPLE_PRESETS !== 'undefined' && APPLE_PRESETS[presetKey]);
   if (preset) {
     stagedCustomPlaylist = {
       title: preset.title,
@@ -448,12 +451,12 @@ async function handleAppleAlbumSearch() {
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-  resultsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 1rem;">Searching Apple Music...</div>';
+  resultsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 1rem;">Searching music catalog...</div>';
 
   try {
     const searchUrl = 'https://itunes.apple.com/search?term=' + encodeURIComponent(query) + '&entity=album&limit=8&media=music';
     const data = await fetchJsonp(searchUrl, 3500);
-    
+
     if (data && data.results && data.results.length > 0) {
       resultsContainer.innerHTML = '';
       data.results.forEach(album => {

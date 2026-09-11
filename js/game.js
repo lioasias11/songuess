@@ -8,6 +8,7 @@ let gameState = {
   activeGenre: 'white-girl-music',
   currentSong: null,
   attemptsUsed: 0,
+  attemptResults: [],
   isFinished: false,
   hasWon: false,
   score: 0
@@ -173,8 +174,8 @@ function getLocalMatches(query) {
 function getCleanTrackTitle(title) {
   if (!title) return '';
   return title
-    .replace(/\s*[\(\[][^\)\]]*(?:feat\.?|featuring|with|prod\.?|remix|acoustic|live|radio|deluxe|bonus|edit|mix|version|explicit|clean|khea|audio|video|instrumental|cover|orchestral|extended|רמיקס|לייב|הופעה|בהופעה|אקוסטי|אקוסטית|שקטה|גרסה|קאבר|אירוח|מארח|מארחת|מארחים|בהשתתפות|דואט|אודיו|קליפ|רשמי|הפקה|קיסריה|מנורה)[^\)\]]*[\)\]]/gi, '')
-    .replace(/\s*[-–—]\s*(?:feat\.?|featuring|with|prod\.?|remix|acoustic|live|radio|deluxe|bonus|edit|mix|version|explicit|clean|רמיקס|לייב|הופעה|בהופעה|אקוסטי|אקוסטית|שקטה|גרסה|קאבר|אירוח|מארח|מארחת|מארחים|בהשתתפות|דואט|אודיו|קליפ|רשמי|הפקה|קיסריה|מנורה|live[^\-–—]*|prod[^\-–—]*)[^-–—]*$/gi, '')
+    .replace(/\s*[\(\[][^\)\]]*(?:feat\.?|featuring|with|prod\.?|remix|acoustic|live|radio|deluxe|bonus|edit|mix|version|explicit|clean|khea|audio|video|instrumental|cover|orchestral|extended|demo|remaster|remastered|mono|stereo|anniversary|edition|single|original|רמיקס|לייב|הופעה|בהופעה|אקוסטי|אקוסטית|שקטה|גרסה|גרסת|מהדורה|רימאסטר|קאבר|אירוח|מארח|מארחת|מארחים|בהשתתפות|דואט|אודיו|קליפ|רשמי|הפקה|קיסריה|מנורה)[^\)\]]*[\)\]]/gi, '')
+    .replace(/\s*[-–—]\s*(?:feat\.?|featuring|with|prod\.?|remix|acoustic|live|radio|deluxe|bonus|edit|mix|version|explicit|clean|demo|remaster|remastered|mono|stereo|anniversary|edition|single|original|רמיקס|לייב|הופעה|בהופעה|אקוסטי|אקוסטית|שקטה|גרסה|גרסת|מהדורה|רימאסטר|קאבר|אירוח|מארח|מארחת|מארחים|בהשתתפות|דואט|אודיו|קליפ|רשמי|הפקה|קיסריה|מנורה|live[^\-–—]*|prod[^\-–—]*)[^-–—]*$/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -213,18 +214,81 @@ function getSongCanonicalKey(trackName, artistName) {
 }
 
 function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
-  const normQuery = normalizeUnicode(query);
+  const normQuery = normalizeUnicode(query).toLowerCase().trim();
+  const normQueryClean = normQuery.replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+  const normQueryNoSpaces = normQueryClean.replace(/\s+/g, '');
   const valAliases = (typeof getArtistAliases === 'function') ? getArtistAliases(query) : [query];
-  const normValAliases = valAliases.map(v => normalizeUnicode(v));
+  const normValAliases = valAliases.map(v => normalizeUnicode(v).toLowerCase().trim());
+
+  const MAX_SAME_TITLE = 3; // Maximum 2-3 songs sharing the same clean title
+
+  function getTitleKey(trackName) {
+    if (!trackName) return '';
+    const clean = getCleanTrackTitle(trackName);
+    return normalizeUnicode(clean)
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Check if current round's song matches the search query
+  let isCurSongMatching = false;
+  let isExactTitleMatch = false;
+  let isPartialTitleMatch = false;
+  let isArtistMatch = false;
+  let curCanonicalKey = '';
+  let curTitleKey = '';
+
+  if (currentSong && currentSong.title && currentSong.artist) {
+    const curTitle = currentSong.title;
+    const curArtist = currentSong.artist;
+    curCanonicalKey = getSongCanonicalKey(curTitle, curArtist);
+    curTitleKey = getTitleKey(curTitle);
+
+    const normCurCleanTitle = curTitleKey;
+    const normCurTitleNoSpaces = normCurCleanTitle.replace(/\s+/g, '');
+    const curArtistAliases = (typeof getArtistAliases === 'function') ? getArtistAliases(curArtist) : [curArtist];
+
+    isExactTitleMatch = (normCurCleanTitle.length >= 2 && (
+      normCurCleanTitle === normQueryClean || 
+      normCurTitleNoSpaces === normQueryNoSpaces
+    ));
+
+    isPartialTitleMatch = (!isExactTitleMatch && normQueryClean.length >= 2 && (
+      normCurCleanTitle.includes(normQueryClean) || normQueryClean.includes(normCurCleanTitle)
+    ));
+
+    isArtistMatch = curArtistAliases.some(ca => {
+      const caNorm = normalizeUnicode(ca).toLowerCase().trim();
+      return normValAliases.some(va => va.length >= 2 && (caNorm.includes(va) || va.includes(caNorm)));
+    });
+
+    isCurSongMatching = isExactTitleMatch || isPartialTitleMatch || isArtistMatch;
+  }
 
   const list = [];
-  const seenCanonicalKeys = new Map();
+  const seenCanonicalKeys = new Map(); // canKey -> index in list
+  const titleCounts = new Map(); // titleKey -> count of songs with this clean title
+
+  function canAddTitle(tKey, isThisTheCurrentSong) {
+    const currentCount = titleCounts.get(tKey) || 0;
+    // If the current round's song matches this same title but hasn't been added yet,
+    // reserve 1 slot for it so the total for this title never exceeds MAX_SAME_TITLE.
+    const mustReserveForCurrentSong = (isCurSongMatching && tKey === curTitleKey && !isThisTheCurrentSong && !seenCanonicalKeys.has(curCanonicalKey));
+    const effectiveMax = mustReserveForCurrentSong ? (MAX_SAME_TITLE - 1) : MAX_SAME_TITLE;
+
+    return currentCount < effectiveMax;
+  }
 
   function add(item) {
     if (!item || !item.trackName || !item.artistName) return;
     const canKey = getSongCanonicalKey(item.trackName, item.artistName);
+    const tKey = getTitleKey(item.trackName);
+    const isThisTheCurrentSong = (isCurSongMatching && canKey === curCanonicalKey);
 
     if (seenCanonicalKeys.has(canKey)) {
+      // Deduplicate same song by same artist: keep original over remix/acoustic
       const existingIdx = seenCanonicalKeys.get(canKey);
       const existing = list[existingIdx];
       const existingHasModifier = /\b(remix|acoustic|live|mix|edit|version|deluxe)\b/i.test(existing.trackName);
@@ -232,10 +296,17 @@ function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
       if (existingHasModifier && !itemHasModifier) {
         list[existingIdx] = item;
       }
-    } else {
-      seenCanonicalKeys.set(canKey, list.length);
-      list.push(item);
+      return;
     }
+
+    // Title count cap: at most MAX_SAME_TITLE songs with the same clean title
+    if (!canAddTitle(tKey, isThisTheCurrentSong)) {
+      return;
+    }
+
+    seenCanonicalKeys.set(canKey, list.length);
+    titleCounts.set(tKey, (titleCounts.get(tKey) || 0) + 1);
+    list.push(item);
   }
 
   // 1. Add local playlist matches first
@@ -244,56 +315,72 @@ function mergeSuggestions(localMatches, apiMatches, query, currentSong) {
   // 2. Add API matches
   apiMatches.forEach(add);
 
-  // 3. Ensure current round's song is included in the suggestions if matching
-  if (currentSong) {
-    const curArtist = currentSong.artist || '';
-    const curTitle = currentSong.title || '';
-    const curArtistAliases = (typeof getArtistAliases === 'function') ? getArtistAliases(curArtist) : [curArtist];
-    const normCurTitle = normalizeUnicode(curTitle);
-    const curCanonicalKey = getSongCanonicalKey(curTitle, curArtist);
-
-    // Exact full title match (user typed the full/exact song name)
-    const isExactTitleMatch = (normCurTitle.length >= 2 && (
-      normCurTitle === normQuery || 
-      normCurTitle.replace(/\s+/g, '') === normQuery.replace(/\s+/g, '')
-    ));
-
-    // Partial title match (user typed 2+ letters or prefix/substring)
-    const isPartialTitleMatch = (!isExactTitleMatch && normQuery.length >= 2 && (
-      normCurTitle.includes(normQuery) || normQuery.includes(normCurTitle)
-    ));
-
-    // Check if user searched the artist name
-    const isArtistMatch = curArtistAliases.some(ca => {
-      const caNorm = normalizeUnicode(ca);
-      return normValAliases.some(va => va.length >= 2 && (caNorm.includes(va) || va.includes(caNorm)));
-    });
-
+  // 3. Ensure current round's song is included if matching
+  if (isCurSongMatching && currentSong) {
     const currentItem = {
-      trackName: curTitle,
-      artistName: curArtist,
+      trackName: currentSong.title,
+      artistName: currentSong.artist,
       artwork: currentSong.artwork || DEFAULT_ARTWORK_SVG
     };
 
-    // Remove any duplicate or remix of the current round's song
     if (seenCanonicalKeys.has(curCanonicalKey)) {
       const existingIdx = seenCanonicalKeys.get(curCanonicalKey);
-      list.splice(existingIdx, 1);
-      seenCanonicalKeys.clear();
-      list.forEach((it, idx) => seenCanonicalKeys.set(getSongCanonicalKey(it.trackName, it.artistName), idx));
-    }
+      if (isExactTitleMatch && existingIdx !== 0) {
+        // Move to the top if user typed exact title
+        list.splice(existingIdx, 1);
+        list.unshift(currentItem);
+      }
+    } else {
+      // Current song wasn't in API/local matches: make sure there is room under its title key
+      const currentTitleCount = titleCounts.get(curTitleKey) || 0;
+      if (currentTitleCount >= MAX_SAME_TITLE) {
+        // Remove the last other song with this title key to preserve cap
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (getTitleKey(list[i].trackName) === curTitleKey) {
+            const removedKey = getSongCanonicalKey(list[i].trackName, list[i].artistName);
+            seenCanonicalKeys.delete(removedKey);
+            list.splice(i, 1);
+            titleCounts.set(curTitleKey, titleCounts.get(curTitleKey) - 1);
+            break;
+          }
+        }
+      }
 
-    if (isExactTitleMatch) {
-      // User specifically typed the full exact title: show at top
-      list.unshift(currentItem);
-    } else if ((isPartialTitleMatch || isArtistMatch) && list.length > 0) {
-      // User typed partial title or artist: place at a completely random position in the list
-      const randIdx = Math.floor(Math.random() * Math.min(list.length + 1, 15));
-      list.splice(randIdx, 0, currentItem);
+      titleCounts.set(curTitleKey, (titleCounts.get(curTitleKey) || 0) + 1);
+
+      if (isExactTitleMatch) {
+        list.unshift(currentItem);
+      } else if ((isPartialTitleMatch || isArtistMatch) && list.length > 0) {
+        const randIdx = Math.floor(Math.random() * Math.min(list.length + 1, 15));
+        list.splice(randIdx, 0, currentItem);
+      } else {
+        list.push(currentItem);
+      }
     }
   }
 
-  return list.slice(0, 15);
+  // Final pass: strictly cap EVERY title at MAX_SAME_TITLE and max total at 15
+  const finalResults = [];
+  const finalTitleCounts = new Map();
+  const finalSeenKeys = new Set();
+
+  for (const item of list) {
+    if (finalResults.length >= 15) break;
+    const canKey = getSongCanonicalKey(item.trackName, item.artistName);
+    if (finalSeenKeys.has(canKey)) continue;
+
+    const tKey = getTitleKey(item.trackName);
+    const count = finalTitleCounts.get(tKey) || 0;
+    const isThisTheCurrentSong = (isCurSongMatching && canKey === curCanonicalKey);
+
+    if (count < MAX_SAME_TITLE || isThisTheCurrentSong) {
+      finalSeenKeys.add(canKey);
+      finalTitleCounts.set(tKey, count + 1);
+      finalResults.push(item);
+    }
+  }
+
+  return finalResults;
 }
 
 let activeDropdownIndex = -1;
@@ -504,6 +591,8 @@ function logAttempt(guessText) {
 
   const feedback = document.getElementById('game-feedback-text');
 
+  if (!gameState.attemptResults) gameState.attemptResults = [];
+
   if (isCorrect) {
     synth.playWin();
     if (feedback) {
@@ -513,6 +602,8 @@ function logAttempt(guessText) {
 
     gameState.hasWon = true;
     gameState.score = SCORE_TIERS[attemptIdx] || 100;
+    gameState.attemptResults[attemptIdx] = 'correct';
+    updateActiveSegment(attemptIdx);
     endGame(true);
   } else {
     synth.playError();
@@ -521,9 +612,11 @@ function logAttempt(guessText) {
       feedback.style.color = isSkip ? "#eab308" : "#ef4444";
     }
 
+    gameState.attemptResults[attemptIdx] = isSkip ? 'skipped' : 'failed';
     gameState.attemptsUsed++;
 
     if (gameState.attemptsUsed >= MAX_ATTEMPTS) {
+      updateActiveSegment(gameState.attemptsUsed);
       endGame(false);
     } else {
       updateActiveSegment(gameState.attemptsUsed);
@@ -924,6 +1017,7 @@ async function startNewGame(genre = 'white-girl-music') {
 
   gameState.activeGenre = genre;
   gameState.attemptsUsed = 0;
+  gameState.attemptResults = [];
   gameState.isFinished = false;
   gameState.hasWon = false;
   gameState.score = 0;
@@ -976,10 +1070,20 @@ function updateActiveSegment(attempt) {
     const seg = document.querySelector(`.c-segment.seg-${i}`);
     if (!seg) continue;
 
-    seg.classList.remove('active', 'used', 'correct', 'failed');
-    if (i < attempt) {
+    seg.classList.remove('active', 'unlocked', 'used', 'correct', 'failed', 'skipped');
+
+    const result = gameState.attemptResults && gameState.attemptResults[i];
+    if (result) {
+      seg.classList.add(result);
+    } else if (i < attempt) {
       seg.classList.add('used');
-    } else if (i === attempt) {
+    }
+
+    if (i <= attempt && !gameState.isFinished) {
+      seg.classList.add('unlocked');
+    }
+
+    if (i === attempt && !gameState.isFinished) {
       seg.classList.add('active');
     }
   }
