@@ -81,6 +81,8 @@
           <button class="genre-pill-btn pill-blue" data-genre="80s">80s</button>
           <button class="genre-pill-btn pill-cyan" data-genre="90s">90s</button>
           <button class="genre-pill-btn pill-pink" data-genre="2000s">2000s</button>
+          <button class="genre-pill-btn pill-artist" data-genre="artist" id="btn-artist-genre"><i
+              class="fa-solid fa-microphone-lines"></i> <span data-i18n="artist_mode_genre">Artist Mode</span></button>
           <button class="genre-pill-btn pill-spotify" data-genre="custom" id="btn-spotify-genre"><i
               class="fa-solid fa-cloud-arrow-down"></i> <span data-i18n="import_playlist_genre">Import Playlist</span></button>
         </div>
@@ -399,6 +401,78 @@
         </div>
         <div id="custom-tracks-preview" class="custom-tracks-list"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Single Artist Mode Modal -->
+  <div id="modal-artist-mode" class="modal-overlay">
+    <div class="modal-card modal-card-large">
+      <button class="modal-close-btn" id="btn-close-artist-modal">&times;</button>
+
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-microphone-lines" style="color: #10b981;"></i> <span data-i18n="choose_artist_title">CHOOSE AN ARTIST</span></h2>
+        <p class="modal-subtitle" data-i18n="choose_artist_sub">Guess songs from your favorite artist's top tracks</p>
+      </div>
+
+      <!-- Artist Search Section -->
+      <div class="custom-input-group">
+        <label for="artist-search-input" data-i18n="search_artist_placeholder">Search any artist (e.g. Taylor Swift, Eminem, עומר אדם)...</label>
+        <div class="input-with-btn">
+          <input type="text" id="artist-search-input"
+            data-i18n-placeholder="search_artist_placeholder"
+            placeholder="Search any artist (e.g. Taylor Swift, Eminem, עומר אדם)..." autocomplete="off">
+          <button id="btn-clear-artist-search" class="modal-btn-secondary" style="display: none; width: 44px; padding: 0; justify-content: center;" title="Clear search">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading Spinner -->
+      <div id="artist-loading-spinner" class="artist-loading-row" style="display: none;">
+        <i class="fa-solid fa-spinner fa-spin"></i> <span data-i18n="loading_artist_tracks">Loading artist songs...</span>
+      </div>
+
+      <!-- Live Search Results Grid -->
+      <div id="artist-search-results" class="artist-results-grid"></div>
+
+      <!-- Popular Artists Quick-Pick Section -->
+      <div class="popular-artists-section">
+        <p class="custom-hint-text" style="margin-bottom: 10px; font-weight: 700;" data-i18n="popular_artists_label">Popular Artists:</p>
+        <div class="popular-artists-grid">
+          <button class="popular-artist-btn" data-artist="עומר אדם" data-itunes-id="451953510">🎤 עומר אדם</button>
+          <button class="popular-artist-btn" data-artist="עדן חסון" data-itunes-id="1180539623">🎤 עדן חסון</button>
+          <button class="popular-artist-btn" data-artist="אייל גולן" data-itunes-id="379679142">🎤 אייל גולן</button>
+          <button class="popular-artist-btn" data-artist="פאר טסי" data-itunes-id="625991443">🎤 פאר טסי</button>
+          <button class="popular-artist-btn" data-artist="אושר כהן" data-itunes-id="876648149">🎤 אושר כהן</button>
+          <button class="popular-artist-btn" data-artist="חנן בן ארי" data-itunes-id="1017164055">🎤 חנן בן ארי</button>
+          <button class="popular-artist-btn" data-artist="טונה" data-itunes-id="730857381">🎤 טונה</button>
+          <button class="popular-artist-btn" data-artist="Eminem" data-itunes-id="111051">🎤 Eminem</button>
+          <button class="popular-artist-btn" data-artist="Taylor Swift" data-itunes-id="159260351">🎤 Taylor Swift</button>
+          <button class="popular-artist-btn" data-artist="Billie Eilish" data-itunes-id="1065981054">🎤 Billie Eilish</button>
+          <button class="popular-artist-btn" data-artist="Drake" data-itunes-id="271256">🎤 Drake</button>
+          <button class="popular-artist-btn" data-artist="The Weeknd" data-itunes-id="479756766">🎤 The Weeknd</button>
+          <button class="popular-artist-btn" data-artist="Bruno Mars" data-itunes-id="278873078">🎤 Bruno Mars</button>
+          <button class="popular-artist-btn" data-artist="Rihanna" data-itunes-id="63346553">🎤 Rihanna</button>
+          <button class="popular-artist-btn" data-artist="Coldplay" data-itunes-id="471744">🎤 Coldplay</button>
+          <button class="popular-artist-btn" data-artist="Ariana Grande" data-itunes-id="412778295">🎤 Ariana Grande</button>
+        </div>
+      </div>
+
+      <!-- Selected Artist Preview Area -->
+      <div id="artist-preview-area" class="custom-status-area" style="display: none; margin-top: 1.2rem;">
+        <div class="custom-summary-row">
+          <div class="artist-preview-meta">
+            <img id="artist-preview-img" src="" alt="Artist" class="artist-preview-avatar">
+            <div class="custom-info">
+              <span id="artist-preview-name" class="custom-title-text">Artist Name</span>
+              <span id="artist-preview-count" class="custom-count-badge">0 tracks</span>
+            </div>
+          </div>
+          <button id="btn-start-artist-game" class="modal-btn-primary"><i class="fa-solid fa-play"></i> <span data-i18n="start_artist_game_btn">Play This Artist</span></button>
+        </div>
+        <div id="artist-tracks-preview" class="custom-tracks-list"></div>
+      </div>
+
     </div>
   </div>
 

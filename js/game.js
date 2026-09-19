@@ -1030,6 +1030,13 @@ async function startNewGame(genre = 'white-girl-music') {
     }
   });
 
+  if (genre === 'artist' && typeof updateArtistPillBadge === 'function') {
+    const name = (typeof activeArtistData !== 'undefined' && activeArtistData && activeArtistData.artistName)
+      ? activeArtistData.artistName
+      : (typeof stagedArtistData !== 'undefined' && stagedArtistData ? stagedArtistData.artistName : '');
+    updateArtistPillBadge(name);
+  }
+
   const feedback = document.getElementById('game-feedback-text');
   if (feedback) {
     feedback.textContent = t('listen_prompt');

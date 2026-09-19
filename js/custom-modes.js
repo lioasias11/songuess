@@ -535,3 +535,270 @@ function startAppleGameFromModal() {
   hideAppleModal();
   startNewGame('apple-music');
 }
+
+// ==========================================
+// SINGLE ARTIST MODE (מצב זמר יחיד)
+// ==========================================
+
+let activeArtistData = {
+  artistName: '',
+  artistArtwork: '',
+  tracks: []
+};
+
+let stagedArtistData = {
+  artistName: '',
+  artistArtwork: '',
+  tracks: []
+};
+
+let artistSearchDebounceTimer = null;
+
+function loadSavedArtistMode() {
+  try {
+    const saved = localStorage.getItem('songuess_artist_mode');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.artistName && Array.isArray(parsed.tracks) && parsed.tracks.length > 0) {
+        activeArtistData = parsed;
+        stagedArtistData = { ...parsed };
+        GENRE_SONGS['artist'] = [...parsed.tracks];
+        updateArtistPillBadge(parsed.artistName);
+        updateArtistModalPreview();
+      }
+    }
+  } catch (e) {
+    console.warn('Error loading saved artist mode:', e);
+  }
+}
+
+function updateArtistPillBadge(artistName) {
+  const pill = document.getElementById('btn-artist-genre');
+  if (!pill) return;
+  const label = pill.querySelector('span') || pill;
+  if (artistName) {
+    label.textContent = artistName;
+    pill.title = (typeof t === 'function' ? t('change_artist_btn') || 'Change Artist' : 'Change Artist') + ': ' + artistName;
+  } else {
+    label.textContent = (typeof t === 'function' ? t('artist_mode_genre') || 'Artist Mode' : 'Artist Mode');
+  }
+}
+
+function openArtistModal() {
+  const modal = document.getElementById('modal-artist-mode');
+  if (modal) {
+    // If an artist is currently active, initialize staged preview with it
+    if (activeArtistData && activeArtistData.artistName && activeArtistData.tracks && activeArtistData.tracks.length > 0) {
+      stagedArtistData = { ...activeArtistData };
+    }
+    updateArtistModalPreview();
+    modal.classList.add('active');
+    const searchInput = document.getElementById('artist-search-input');
+    if (searchInput) {
+      searchInput.value = (stagedArtistData && stagedArtistData.artistName) ? stagedArtistData.artistName : '';
+      setTimeout(() => searchInput.focus(), 150);
+    }
+  }
+}
+
+function hideArtistModal() {
+  const modal = document.getElementById('modal-artist-mode');
+  if (modal) modal.classList.remove('active');
+
+  // Revert staged state to current active artist since user closed without starting
+  if (activeArtistData && activeArtistData.artistName && activeArtistData.tracks && activeArtistData.tracks.length > 0) {
+    stagedArtistData = { ...activeArtistData };
+  } else {
+    stagedArtistData = {
+      artistName: '',
+      artistArtwork: '',
+      tracks: []
+    };
+  }
+
+  const searchInput = document.getElementById('artist-search-input');
+  if (searchInput) {
+    searchInput.value = (activeArtistData && activeArtistData.artistName) ? activeArtistData.artistName : '';
+  }
+  const clearBtn = document.getElementById('btn-clear-artist-search');
+  if (clearBtn) {
+    clearBtn.style.display = (searchInput && searchInput.value) ? 'flex' : 'none';
+  }
+
+  // Ensure pill badge strictly shows the ACTIVE artist (or default), never the cancelled preview
+  updateArtistPillBadge(activeArtistData && activeArtistData.artistName ? activeArtistData.artistName : '');
+  updateArtistModalPreview();
+}
+
+function updateArtistModalPreview() {
+  const nameEl = document.getElementById('artist-preview-name');
+  const countEl = document.getElementById('artist-preview-count');
+  const imgEl = document.getElementById('artist-preview-img');
+  const listEl = document.getElementById('artist-tracks-preview');
+  const startBtn = document.getElementById('btn-start-artist-game');
+  const statusArea = document.getElementById('artist-preview-area');
+
+  const tracks = stagedArtistData.tracks || [];
+  const artistName = stagedArtistData.artistName || '';
+
+  if (statusArea) {
+    statusArea.style.display = (artistName && tracks.length > 0) ? 'block' : 'none';
+  }
+
+  if (nameEl) nameEl.textContent = artistName || (typeof t === 'function' ? t('no_artist_loaded') : 'No artist selected');
+  if (countEl) {
+    countEl.textContent = (typeof t === 'function')
+      ? t('loaded_artist_tracks', { count: tracks.length })
+      : `${tracks.length} top songs`;
+  }
+  if (imgEl && stagedArtistData.artistArtwork) {
+    imgEl.src = stagedArtistData.artistArtwork;
+  }
+
+  if (listEl) {
+    if (tracks.length === 0) {
+      listEl.innerHTML = '';
+    } else {
+      listEl.innerHTML = tracks.slice(0, 50).map((t, idx) => {
+        const title = t.includes(' - ') ? t.split(' - ').slice(1).join(' - ') : t;
+        return `<div class="custom-track-item"><strong>${idx + 1}.</strong> ${title}</div>`;
+      }).join('');
+      if (tracks.length > 50) {
+        listEl.innerHTML += `<div class="custom-track-item" style="color: var(--text-muted); font-style: italic;">+ ${tracks.length - 50} more popular songs</div>`;
+      }
+    }
+  }
+
+  if (startBtn) {
+    startBtn.disabled = (tracks.length === 0);
+  }
+}
+
+async function selectArtistAndLoad(artistName, artistId = null) {
+  if (!artistName) return;
+
+  const loadingIndicator = document.getElementById('artist-loading-spinner');
+  const resultsGrid = document.getElementById('artist-search-results');
+  const searchInput = document.getElementById('artist-search-input');
+  const clearBtn = document.getElementById('btn-clear-artist-search');
+
+  if (searchInput) {
+    searchInput.value = artistName;
+    if (clearBtn) clearBtn.style.display = 'flex';
+  }
+
+  if (loadingIndicator) loadingIndicator.style.display = 'flex';
+  if (resultsGrid) resultsGrid.innerHTML = '';
+
+  try {
+    const data = await fetchArtistTopTracks(artistName, artistId);
+    if (data && data.tracks && data.tracks.length > 0) {
+      stagedArtistData = data;
+      if (searchInput && data.artistName) {
+        searchInput.value = data.artistName;
+      }
+      updateArtistModalPreview();
+      // NOTE: Do not update pill badge here. Pill badge is updated only when starting game.
+
+      // Scroll preview area into view
+      const statusArea = document.getElementById('artist-preview-area');
+      if (statusArea) {
+        statusArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    } else {
+      alert((typeof t === 'function' ? t('no_tracks_found') || 'Could not find tracks for this artist.' : 'Could not find tracks for this artist. Please try another name.'));
+    }
+  } catch (err) {
+    console.error('Error fetching artist top tracks:', err);
+  } finally {
+    if (loadingIndicator) loadingIndicator.style.display = 'none';
+  }
+}
+
+function handleArtistSearchInput(query) {
+  if (artistSearchDebounceTimer) clearTimeout(artistSearchDebounceTimer);
+
+  const resultsGrid = document.getElementById('artist-search-results');
+  const clearBtn = document.getElementById('btn-clear-artist-search');
+  const cleanQ = (query || '').trim();
+
+  if (clearBtn) clearBtn.style.display = cleanQ ? 'flex' : 'none';
+
+  if (!cleanQ || cleanQ.length < 2) {
+    if (resultsGrid) resultsGrid.innerHTML = '';
+    return;
+  }
+
+  artistSearchDebounceTimer = setTimeout(async () => {
+    const loading = document.getElementById('artist-loading-spinner');
+    if (loading) loading.style.display = 'flex';
+
+    try {
+      const results = await searchArtists(cleanQ);
+      renderArtistSearchResults(results);
+    } catch (e) {
+      console.warn('Artist search error:', e);
+    } finally {
+      if (loading) loading.style.display = 'none';
+    }
+  }, 250);
+}
+
+function renderArtistSearchResults(artists) {
+  const grid = document.getElementById('artist-search-results');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  if (!artists || artists.length === 0) {
+    return;
+  }
+
+  artists.forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'artist-result-card';
+    card.tabIndex = 0;
+    card.innerHTML = `
+      <img src="${a.artwork || DEFAULT_ARTWORK_SVG}" alt="${a.artistName}" class="artist-card-avatar">
+      <div class="artist-card-info">
+        <div class="artist-card-name">${a.artistName}</div>
+        <div class="artist-card-genre">${a.genre || 'Artist'}</div>
+      </div>
+      <button class="artist-card-select-btn" title="Select artist"><i class="fa-solid fa-play"></i></button>
+    `;
+
+    card.addEventListener('click', () => {
+      selectArtistAndLoad(a.artistName, a.artistId);
+    });
+
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectArtistAndLoad(a.artistName, a.artistId);
+      }
+    });
+
+    grid.appendChild(card);
+  });
+}
+
+function startArtistGameFromModal() {
+  if (!stagedArtistData.tracks || stagedArtistData.tracks.length === 0) return;
+
+  activeArtistData = {
+    artistName: stagedArtistData.artistName,
+    artistArtwork: stagedArtistData.artistArtwork,
+    tracks: [...stagedArtistData.tracks]
+  };
+
+  GENRE_SONGS['artist'] = [...activeArtistData.tracks];
+  try {
+    localStorage.setItem('songuess_artist_mode', JSON.stringify(activeArtistData));
+  } catch (e) { }
+
+  updateArtistPillBadge(activeArtistData.artistName);
+  
+  const modal = document.getElementById('modal-artist-mode');
+  if (modal) modal.classList.remove('active');
+
+  startNewGame('artist');
+}

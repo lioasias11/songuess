@@ -93,6 +93,16 @@ const TRANSLATIONS = {
     legal_agree_btn: "Understood & Close",
     import_playlist_genre: "Import Playlist",
     custom_tracklist_title: "Custom Tracklist",
+    artist_mode_genre: "Artist Mode",
+    choose_artist_title: "CHOOSE AN ARTIST",
+    choose_artist_sub: "Guess songs from your favorite artist's top tracks",
+    search_artist_placeholder: "Search any artist (e.g. Taylor Swift, Eminem, עומר אדם)...",
+    popular_artists_label: "Popular Artists",
+    loaded_artist_tracks: "Loaded {count} top songs",
+    start_artist_game_btn: "Play This Artist",
+    change_artist_btn: "Change Artist",
+    no_artist_loaded: "No artist selected",
+    loading_artist_tracks: "Loading artist songs...",
     genres: {
       "white-girl-music": "White Girl Music",
       "pop": "Pop",
@@ -102,7 +112,8 @@ const TRANSLATIONS = {
       "80s": "80s",
       "90s": "90s",
       "2000s": "2000s",
-      "custom": "Import Playlist"
+      "custom": "Import Playlist",
+      "artist": "Artist Mode"
     }
   },
   he: {
@@ -174,6 +185,16 @@ const TRANSLATIONS = {
     legal_agree_btn: "הבנתי וסגור",
     import_playlist_genre: "ייבוא פלייליסט",
     custom_tracklist_title: "רשימת שירים מותאמת",
+    artist_mode_genre: "מצב זמר",
+    choose_artist_title: "בחר זמר",
+    choose_artist_sub: "נחש שירים מתוך הלהיטים הכי מושמעים של הזמר האהוב עליך",
+    search_artist_placeholder: "חפש כל זמר/ת (למשל: עומר אדם, עדן חסון, טיילור סוויפט)...",
+    popular_artists_label: "זמרים פופולריים",
+    loaded_artist_tracks: "נטענו {count} שירים מובילים",
+    start_artist_game_btn: "התחל לשחק עם הזמר",
+    change_artist_btn: "החלף זמר",
+    no_artist_loaded: "לא נבחר זמר",
+    loading_artist_tracks: "טוען שירי אמן...",
     genres: {
       "white-girl-music": "להיטי פופ מוכרים",
       "pop": "פופ",
@@ -183,7 +204,8 @@ const TRANSLATIONS = {
       "80s": "שנות ה-80",
       "90s": "שנות ה-90",
       "2000s": "שנות ה-2000",
-      "custom": "ייבוא פלייליסט"
+      "custom": "ייבוא פלייליסט",
+      "artist": "מצב זמר"
     }
   }
 };
@@ -230,6 +252,10 @@ function applyLanguage(lang) {
     if (dictGenres[genre]) {
       if (genre === 'custom' || genre === 'spotify') {
         btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down"></i> ${dictGenres[genre] || t('import_playlist_genre')}`;
+      } else if (genre === 'artist') {
+        const currentArtistName = (typeof activeArtistData !== 'undefined' && activeArtistData && activeArtistData.artistName) ? activeArtistData.artistName : '';
+        const label = currentArtistName || dictGenres[genre] || t('artist_mode_genre');
+        btn.innerHTML = `<i class="fa-solid fa-microphone-lines"></i> <span>${label}</span>`;
       } else {
         btn.textContent = dictGenres[genre];
       }

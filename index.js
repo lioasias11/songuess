@@ -56,10 +56,10 @@ function setupEvents() {
           return;
         }
       }
-      if (genre === 'apple-music') {
-        const appleSongs = GENRE_SONGS['apple-music'] || [];
-        if (appleSongs.length === 0 || pill.classList.contains('active')) {
-          openAppleModal();
+      if (genre === 'artist') {
+        const artistSongs = GENRE_SONGS['artist'] || [];
+        if (artistSongs.length === 0 || pill.classList.contains('active')) {
+          openArtistModal();
           return;
         }
       }
@@ -282,6 +282,62 @@ function setupEvents() {
     });
   });
 
+  // Artist Mode Modal Controls
+  loadSavedArtistMode();
+
+  const closeArtistBtn = document.getElementById('btn-close-artist-modal');
+  if (closeArtistBtn) closeArtistBtn.addEventListener('click', hideArtistModal);
+
+  const artistSearchInput = document.getElementById('artist-search-input');
+  if (artistSearchInput) {
+    artistSearchInput.addEventListener('input', (e) => {
+      handleArtistSearchInput(e.target.value);
+    });
+    artistSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const firstCard = document.querySelector('#artist-search-results .artist-result-card');
+        if (firstCard) {
+          firstCard.click();
+        } else if (artistSearchInput.value.trim()) {
+          selectArtistAndLoad(artistSearchInput.value.trim());
+        }
+      }
+    });
+  }
+
+  const clearArtistSearchBtn = document.getElementById('btn-clear-artist-search');
+  if (clearArtistSearchBtn) {
+    clearArtistSearchBtn.addEventListener('click', () => {
+      if (artistSearchInput) {
+        artistSearchInput.value = '';
+        artistSearchInput.focus();
+      }
+      handleArtistSearchInput('');
+    });
+  }
+
+  document.querySelectorAll('.popular-artist-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      synth.playClick();
+      const artistName = btn.dataset.artist;
+      const itunesId = btn.dataset.itunesId || null;
+      selectArtistAndLoad(artistName, itunesId);
+    });
+  });
+
+  const startArtistBtn = document.getElementById('btn-start-artist-game');
+  if (startArtistBtn) startArtistBtn.addEventListener('click', startArtistGameFromModal);
+
+  const artistModal = document.getElementById('modal-artist-mode');
+  if (artistModal) {
+    artistModal.addEventListener('click', (e) => {
+      if (e.target === artistModal) {
+        hideArtistModal();
+      }
+    });
+  }
+
   // Legal & Fair Use Modal
   const legalModal = document.getElementById('modal-legal');
   const openLegalModal = () => {
@@ -308,8 +364,15 @@ function setupEvents() {
   const btnAgreeLegal = document.getElementById('btn-agree-legal');
   if (btnAgreeLegal) btnAgreeLegal.addEventListener('click', closeLegalModal);
 
-  // Keyboard spacebar listener to toggle snippet playback
+  // Keyboard spacebar listener to toggle snippet playback and Escape to close modal
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const artistModal = document.getElementById('modal-artist-mode');
+      if (artistModal && artistModal.classList.contains('active')) {
+        hideArtistModal();
+        return;
+      }
+    }
     if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
       e.preventDefault();
       if (gameState.isFinished) {

@@ -914,4 +914,272 @@ async function fetchSpotifyPlaylistTracks(rawUrl) {
   return null;
 }
 
+// ==========================================
+// SINGLE ARTIST MODE API HELPERS
+// ==========================================
+
+function sanitizeSingleArtistName(artist) {
+  if (!artist) return '';
+  let str = artist.trim();
+  // Strip multiple artists delimiters: comma, feat, ft, featuring, &, and, with, Hebrew equivalents
+  const parts = str.split(/,|\bfeat\.?\b|\bft\.?\b|\bfeaturing\b|&|\band\b|\bx\b|\bwith\b|\s+עם\s+|\s+מארח\s+|\s+מארחת\s+|\s+מארחים\s+|\s+בהשתתפות\s+/i);
+  let primary = parts[0].trim();
+  primary = primary.replace(/^[([{"']+|[)\]}"']+$/g, '').trim();
+  return primary || str;
+}
+
+function resolveCanonicalSingleArtist(rawArtistName, searchedQuery = '') {
+  const primary = sanitizeSingleArtistName(rawArtistName);
+  const cleanSearch = sanitizeSingleArtistName(searchedQuery);
+  if (!cleanSearch) return primary;
+
+  // Direct match (case-insensitive)
+  if (primary.toLowerCase() === cleanSearch.toLowerCase()) {
+    return cleanSearch;
+  }
+
+  // Check Hebrew artist mapping
+  if (typeof HEBREW_ARTIST_MAP === 'object' && HEBREW_ARTIST_MAP) {
+    if (HEBREW_ARTIST_MAP[cleanSearch]) {
+      const aliases = Array.isArray(HEBREW_ARTIST_MAP[cleanSearch]) ? HEBREW_ARTIST_MAP[cleanSearch] : [HEBREW_ARTIST_MAP[cleanSearch]];
+      if (aliases.some(a => a.toLowerCase() === primary.toLowerCase() || primary.toLowerCase().includes(a.toLowerCase()))) {
+        return cleanSearch;
+      }
+    }
+    if (HEBREW_ARTIST_MAP[primary]) {
+      const aliases = Array.isArray(HEBREW_ARTIST_MAP[primary]) ? HEBREW_ARTIST_MAP[primary] : [HEBREW_ARTIST_MAP[primary]];
+      if (aliases.some(a => a.toLowerCase() === cleanSearch.toLowerCase() || cleanSearch.toLowerCase().includes(a.toLowerCase()))) {
+        return /[\u0590-\u05FF]/.test(cleanSearch) ? cleanSearch : primary;
+      }
+    }
+  }
+
+  // Check alias helper
+  if (typeof getArtistAliases === 'function') {
+    const aliases = getArtistAliases(cleanSearch);
+    if (aliases.some(a => a.toLowerCase() === primary.toLowerCase() || primary.toLowerCase().includes(a.toLowerCase()))) {
+      return cleanSearch;
+    }
+  }
+
+  return primary;
+}
+
+async function searchArtists(query) {
+  if (!query || !query.trim()) return [];
+  const cleanQ = query.trim();
+  const isHebrew = /[\u0590-\u05FF]/.test(cleanQ);
+  const countryParam = isHebrew ? '&country=il' : '';
+
+  const artistsMap = new Map();
+
+  // 1. Primary: entity=musicArtist guarantees individual artists rather than song collabs
+  try {
+    const artistSearchUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanQ)}&entity=musicArtist&limit=10${countryParam}`;
+    const data = await fetchJsonp(artistSearchUrl, 3500);
+    if (data && data.results && data.results.length > 0) {
+      for (const r of data.results) {
+        if (!r.artistName) continue;
+        const singleName = resolveCanonicalSingleArtist(r.artistName, cleanQ);
+        const key = r.artistId || singleName.toLowerCase().trim();
+        if (!artistsMap.has(key)) {
+          artistsMap.set(key, {
+            artistId: r.artistId,
+            artistName: singleName,
+            genre: r.primaryGenreName || 'Artist',
+            artwork: ''
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('musicArtist search error:', e);
+  }
+
+  // 2. Complementary / fallback search via entity=song to discover artists and collect artworks
+  try {
+    const songSearchUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanQ)}&entity=song&limit=25${countryParam}`;
+    const songData = await fetchJsonp(songSearchUrl, 3500);
+    if (songData && songData.results) {
+      for (const s of songData.results) {
+        if (!s.artistName) continue;
+        // Strictly sanitize: NEVER allow multiple artists!
+        const singleName = resolveCanonicalSingleArtist(s.artistName, cleanQ);
+        const key = s.artistId || singleName.toLowerCase().trim();
+
+        if (artistsMap.has(s.artistId)) {
+          // Attach artwork if missing
+          if (!artistsMap.get(s.artistId).artwork && s.artworkUrl100) {
+            artistsMap.get(s.artistId).artwork = s.artworkUrl100.replace('100x100bb', '300x300bb');
+          }
+        } else if (artistsMap.size < 8) {
+          artistsMap.set(key, {
+            artistId: s.artistId,
+            artistName: singleName,
+            genre: s.primaryGenreName || 'Artist',
+            artwork: (s.artworkUrl100 || '').replace('100x100bb', '300x300bb')
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('song complementary search error:', e);
+  }
+
+  // 3. For any artists still missing artwork, fetch in one batch lookup
+  const missingArtIds = Array.from(artistsMap.values())
+    .filter(a => !a.artwork && a.artistId)
+    .map(a => a.artistId)
+    .slice(0, 8);
+
+  if (missingArtIds.length > 0) {
+    try {
+      const lookupUrl = `https://itunes.apple.com/lookup?id=${missingArtIds.join(',')}&entity=song&limit=1${countryParam}`;
+      const lookupData = await fetchJsonp(lookupUrl, 3000);
+      if (lookupData && lookupData.results) {
+        for (const t of lookupData.results) {
+          if (t.artistId && t.artworkUrl100 && artistsMap.has(t.artistId)) {
+            artistsMap.get(t.artistId).artwork = t.artworkUrl100.replace('100x100bb', '300x300bb');
+          }
+        }
+      }
+    } catch (e) { }
+  }
+
+  // Deduplicate by normalized single artist name
+  const seenNorm = new Set();
+  const results = [];
+  for (const a of artistsMap.values()) {
+    const singleName = sanitizeSingleArtistName(a.artistName);
+    const norm = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(singleName) : singleName.toLowerCase().trim();
+    if (!seenNorm.has(norm)) {
+      seenNorm.add(norm);
+      a.artistName = singleName;
+      results.push(a);
+    }
+  }
+
+  return results.slice(0, 8);
+}
+
+async function fetchArtistTopTracks(artistQuery, artistId = null) {
+  if (!artistQuery || !artistQuery.trim()) return null;
+  const cleanQuery = artistQuery.trim();
+  const singleQuery = sanitizeSingleArtistName(cleanQuery);
+  let matchedArtistId = artistId;
+  let canonicalArtistName = singleQuery;
+  let artistArtwork = '';
+
+  const isHebrew = /[\u0590-\u05FF]/.test(cleanQuery);
+  const country = isHebrew ? 'il' : 'us';
+  const countryParam = `&country=${country}`;
+
+  // 1. If artistId not provided, discover single artist via entity=musicArtist
+  if (!matchedArtistId) {
+    try {
+      const artistSearchUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(singleQuery)}&entity=musicArtist&limit=5${countryParam}`;
+      const data = await fetchJsonp(artistSearchUrl, 4000);
+      if (data && data.results && data.results.length > 0) {
+        const normQ = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(singleQuery) : singleQuery.toLowerCase();
+        const match = data.results.find(r => {
+          const itemNorm = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(r.artistName || '') : (r.artistName || '').toLowerCase();
+          return itemNorm === normQ || itemNorm.includes(normQ) || normQ.includes(itemNorm);
+        }) || data.results[0];
+
+        matchedArtistId = match.artistId;
+        canonicalArtistName = resolveCanonicalSingleArtist(match.artistName, singleQuery);
+      }
+    } catch (e) {
+      console.warn('Artist musicArtist search error:', e);
+    }
+  }
+
+  // If still not matched, try song search as fallback to find artistId, strictly resolving single artist
+  if (!matchedArtistId) {
+    try {
+      const searchUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(singleQuery)}&entity=song&limit=15${countryParam}`;
+      const data = await fetchJsonp(searchUrl, 4000);
+      if (data && data.results && data.results.length > 0) {
+        const match = data.results[0];
+        matchedArtistId = match.artistId;
+        canonicalArtistName = resolveCanonicalSingleArtist(match.artistName, singleQuery);
+        artistArtwork = (match.artworkUrl100 || '').replace('100x100bb', '600x600bb');
+      }
+    } catch (e) { }
+  }
+
+  // Ensure canonicalArtistName is ALWAYS a single artist name (never multiple artists)
+  canonicalArtistName = resolveCanonicalSingleArtist(canonicalArtistName, singleQuery);
+
+  const rawTracks = [];
+
+  // 2. Fetch top tracks via iTunes lookup (naturally sorted by popularity/sales rank)
+  if (matchedArtistId) {
+    try {
+      const lookupUrl = `https://itunes.apple.com/lookup?id=${matchedArtistId}&entity=song&limit=200${countryParam}`;
+      const data = await fetchJsonp(lookupUrl, 6000);
+      if (data && data.results) {
+        data.results.filter(r => r.wrapperType === 'track').forEach(r => rawTracks.push(r));
+      }
+    } catch (e) {
+      console.warn('Artist lookup failed:', e);
+    }
+  }
+
+  // 3. Complement with search to ensure top collaborations and singles are captured
+  try {
+    const songSearchUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(canonicalArtistName)}&entity=song&limit=200&media=music${countryParam}`;
+    const data = await fetchJsonp(songSearchUrl, 6000);
+    if (data && data.results) {
+      data.results.forEach(r => rawTracks.push(r));
+    }
+  } catch (e) {
+    console.warn('Artist song search failed:', e);
+  }
+
+  // 4. Clean, verify relevance, and deduplicate
+  const normArtist = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(canonicalArtistName) : canonicalArtistName.toLowerCase();
+  const seenCanonicalKeys = new Set();
+  const tracks = [];
+
+  for (const item of rawTracks) {
+    if (!item.previewUrl || !item.trackName || !item.artistName) continue;
+
+    const itemArtistNorm = (typeof normalizeSearchStr === 'function') ? normalizeSearchStr(item.artistName) : item.artistName.toLowerCase();
+    const isArtistRelevant = itemArtistNorm.includes(normArtist) || normArtist.includes(itemArtistNorm) || (typeof getArtistAliases === 'function' && getArtistAliases(canonicalArtistName).some(a => itemArtistNorm.includes(normalizeSearchStr(a))));
+    if (!isArtistRelevant) continue;
+
+    const cleanTitle = (typeof getCleanTrackTitle === 'function') ? getCleanTrackTitle(item.trackName) : item.trackName;
+    const canKey = (typeof getSongCanonicalKey === 'function') ? getSongCanonicalKey(cleanTitle, canonicalArtistName) : `${cleanTitle.toLowerCase()}__${canonicalArtistName.toLowerCase()}`;
+
+    if (seenCanonicalKeys.has(canKey)) continue;
+    seenCanonicalKeys.add(canKey);
+
+    const formattedTrack = canonicalArtistName + ' - ' + cleanTitle;
+    tracks.push(formattedTrack);
+
+    // Preload into cache so audio player starts instantaneously without any roundtrip
+    if (typeof storePreloadedTrackData === 'function') {
+      const art = (item.artworkUrl100 || '').replace('100x100bb', '600x600bb');
+      storePreloadedTrackData(formattedTrack, {
+        previewUrl: item.previewUrl,
+        artwork: art || artistArtwork || DEFAULT_ARTWORK_SVG,
+        title: cleanTitle,
+        artist: canonicalArtistName,
+        album: item.collectionName || 'Single'
+      });
+    }
+
+    if (!artistArtwork && item.artworkUrl100) {
+      artistArtwork = item.artworkUrl100.replace('100x100bb', '600x600bb');
+    }
+  }
+
+  return {
+    artistName: canonicalArtistName,
+    artistArtwork: artistArtwork || '',
+    tracks: tracks
+  };
+}
+
 
