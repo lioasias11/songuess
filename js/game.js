@@ -39,6 +39,9 @@ function loadStats() {
 function saveStats() {
   try {
     localStorage.setItem('songuess_stats_v2', JSON.stringify(stats));
+    if (typeof syncPlayerDataToSupabase === 'function') {
+      void syncPlayerDataToSupabase();
+    }
   } catch (e) {
     console.error("Stats save error:", e);
   }
