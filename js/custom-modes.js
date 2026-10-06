@@ -269,6 +269,9 @@ function startCustomGameFromModal() {
   try {
     localStorage.setItem('songuess_custom_playlist', JSON.stringify(stagedCustomPlaylist));
   } catch (e) { }
+  if (typeof syncPlayerDataToSupabase === 'function') {
+    void syncPlayerDataToSupabase();
+  }
 
   hideCustomModal();
   startNewGame('spotify');
@@ -531,6 +534,9 @@ function startAppleGameFromModal() {
   try {
     localStorage.setItem('songuess_apple_playlist', JSON.stringify(stagedApplePlaylist));
   } catch (e) { }
+  if (typeof syncPlayerDataToSupabase === 'function') {
+    void syncPlayerDataToSupabase();
+  }
 
   hideAppleModal();
   startNewGame('apple-music');
@@ -794,6 +800,9 @@ function startArtistGameFromModal() {
   try {
     localStorage.setItem('songuess_artist_mode', JSON.stringify(activeArtistData));
   } catch (e) { }
+  if (typeof syncPlayerDataToSupabase === 'function') {
+    void syncPlayerDataToSupabase();
+  }
 
   updateArtistPillBadge(activeArtistData.artistName);
   
