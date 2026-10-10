@@ -2,9 +2,13 @@
 // SONGUESS - APPLICATION ENTRY POINT
 // ==========================================
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadArtworkCache();
+document.addEventListener('DOMContentLoaded', async () => {
   loadStats();
+  if (typeof loadPlayerDataFromSupabase === 'function') {
+    await loadPlayerDataFromSupabase();
+    loadStats();
+  }
+  loadArtworkCache();
   applyLanguage(currentLanguage);
   updateHeaderStats();
   setupEvents();
